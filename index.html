@@ -14,7 +14,7 @@
         label { display: block; margin-top: 12px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.95rem; }
         .auto-box { border: 2px dashed var(--accent); padding: 15px; border-radius: 12px; background: rgba(59, 130, 246, 0.05); }
-        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold; font-size: 1.1rem; margin-top: 15px; }
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold; font-size: 1.1rem; margin-top: 15px; cursor: pointer; }
         .trainer { position: fixed; top: 0; left: 0; right: 0; bottom: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; z-index: 1; }
         .row-pinyin, .row-target, .row-trans { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; width: 100%; }
         .row-pinyin { font-size: 1.1rem; color: var(--muted); margin-bottom: 10px; min-height: 1.5em; pointer-events: none; }
@@ -46,7 +46,7 @@
         <button class="btn" onclick="start()">Start Practice</button>
     </div>
 
-    <div id="practice" class="trainer hidden" onmousedown="pStart(event)" onmouseup="pEnd(event)" ontouchstart="pStart(event)" ontouchend="pEnd(event)">
+    <div id="practice" class="trainer hidden">
         <div id="display-pinyin" class="row-pinyin"></div>
         <div id="display-target" class="row-target"></div>
         <div id="display-trans" class="row-trans"></div>
@@ -65,6 +65,8 @@
         let totalSteps = 0;
         let pressTimer; 
         let isLongPress = false;
+        let lastClickTime = 0;
+        let canReveal = false;
 
         function handleAutoPaste() {
             const lines = document.getElementById('auto-input').value.split('\n').filter(l => l.trim() !== '');
@@ -84,12 +86,14 @@
             const trRaw = document.getElementById('in-trans').value;
             if (!tRaw) return alert("Enter a sentence!");
 
-            const tC = tRaw.split(/[|｜]/).map(s => s.trim());
-            const pC = pRaw.split(/[|｜]/).map(s => s.trim());
-            const trC = trRaw.split(/[|｜]/).map(s => s.trim());
+            // Split and filter out empty items caused by trailing pipes
+            const tC = tRaw.split(/[|｜]/).map(s => s.trim()).filter(s => s.length > 0);
+            const pC = pRaw.split(/[|｜]/).map(s => s.trim()).filter(s => s.length > 0);
+            const trC = trRaw.split(/[|｜]/).map(s => s.trim()).filter(s => s.length > 0);
             
             totalSteps = tC.length;
-            currentStep = 0; // Force reset to zero
+            currentStep = 0; 
+            canReveal = false; // Locked initially
 
             const tD = document.getElementById('display-target');
             const pD = document.getElementById('display-pinyin');
@@ -98,42 +102,59 @@
 
             tC.forEach((text, i) => {
                 const sT = document.createElement('span'); sT.className = 'chunk unrevealed'; sT.id = `t-${i}`; sT.innerText = text; tD.appendChild(sT);
-                
                 const sP = document.createElement('span'); sP.className = 'chunk unrevealed'; sP.id = `p-${i}`; sP.innerText = pC[i] || ''; pD.appendChild(sP);
-                
                 if (trC.length > 1) {
                     const sTR = document.createElement('span'); sTR.className = 'chunk unrevealed'; sTR.id = `tr-${i}`; sTR.innerText = trC[i] || ''; trD.appendChild(sTR);
-                } else if (i === 0) { 
-                    trD.innerText = trRaw; // Show fixed translation if no pipes used
-                }
+                } else if (i === 0) { trD.innerText = trRaw; }
             });
 
             document.getElementById('setup').classList.add('hidden');
             document.getElementById('practice').classList.remove('hidden');
             document.getElementById('controls').classList.remove('hidden');
+
+            // Safety delay: prevent the start click from triggering the first reveal
+            setTimeout(() => { canReveal = true; }, 500);
         }
 
-        function pStart(e) { isLongPress = false; pressTimer = setTimeout(() => { isLongPress = true; }, 300); }
-        
-        function pEnd(e) {
+        // Global event listeners to handle taps strictly
+        const trainer = document.getElementById('practice');
+
+        function onInteractionStart(e) {
+            isLongPress = false;
+            pressTimer = setTimeout(() => { isLongPress = true; }, 350);
+        }
+
+        function onInteractionEnd(e) {
             clearTimeout(pressTimer);
-            if (!isLongPress && window.getSelection().toString().length === 0) {
+            if (!canReveal) return;
+
+            const now = Date.now();
+            // Prevent double-fires (ghost clicks) within 300ms
+            if (now - lastClickTime < 300) return;
+            lastClickTime = now;
+
+            const selection = window.getSelection().toString();
+            if (!isLongPress && selection.length === 0) {
                 reveal();
             }
         }
 
+        // Listen for both touch and mouse, but handle carefully
+        trainer.addEventListener('touchstart', onInteractionStart, {passive: true});
+        trainer.addEventListener('touchend', (e) => { 
+            onInteractionEnd(e); 
+        });
+        trainer.addEventListener('mousedown', onInteractionStart);
+        trainer.addEventListener('mouseup', onInteractionEnd);
+
         function reveal() {
             if (currentStep < totalSteps) {
-                // Reveal the CURRENT step
                 document.getElementById(`t-${currentStep}`).classList.remove('unrevealed');
-                const p = document.getElementById(`p-${currentStep}`);
-                if(p) p.classList.remove('unrevealed');
-                const tr = document.getElementById(`tr-${currentStep}`);
-                if(tr) tr.classList.remove('unrevealed');
-                
+                if(document.getElementById(`p-${currentStep}`)) document.getElementById(`p-${currentStep}`).classList.remove('unrevealed');
+                if(document.getElementById(`tr-${currentStep}`)) document.getElementById(`tr-${currentStep}`).classList.remove('unrevealed');
                 currentStep++;
             } else {
-                // We reached the end. Reset everything.
+                // Perfect Reset Loop
                 currentStep = 0;
                 document.querySelectorAll('.chunk').forEach(c => c.classList.add('unrevealed'));
             }

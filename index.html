@@ -15,14 +15,26 @@
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.95rem; }
         .auto-box { border: 2px dashed var(--accent); padding: 15px; border-radius: 12px; background: rgba(59, 130, 246, 0.05); margin-bottom: 20px; }
         .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 15px; }
-        .trainer { height: 70vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; }
+        
+        /* Trainer UI - Selection allowed here */
+        .trainer { height: 70vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         .row-pinyin { font-size: 1.1rem; color: var(--muted); margin-bottom: 8px; min-height: 1.5em; }
         .row-target { font-size: 2.2rem; font-weight: bold; margin-bottom: 15px; line-height: 1.4; }
         .row-trans { font-size: 1.2rem; color: var(--muted); min-height: 1.5em; line-height: 1.4; }
-        .chunk { display: inline-block; margin: 0 4px; transition: 0.2s; border-bottom: 2px solid transparent; }
-        .chunk.unrevealed { color: transparent; border-bottom-color: var(--border); }
+        
+        .chunk { display: inline-block; margin: 0 4px; transition: color 0.2s; border-bottom: 2px solid transparent; }
+        
+        /* The Spoiler Fix: Hidden chunks are effectively invisible and unselectable */
+        .chunk.unrevealed { 
+            color: transparent !important; 
+            border-bottom-color: var(--border);
+            user-select: none;
+            -webkit-user-select: none;
+            pointer-events: none;
+        }
+
         .nav-btns { position: fixed; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 30px; }
-        .circle-btn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.3rem; color: var(--text); display: flex; align-items: center; justify-content: center; }
+        .circle-btn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.3rem; color: var(--text); display: flex; align-items: center; justify-content: center; z-index: 100; }
     </style>
 </head>
 <body data-theme="light">
@@ -34,27 +46,25 @@
         </div>
 
         <div class="auto-box">
-            <label style="margin-top:0; color:var(--accent)">✨ Smart Paste (3 lines: Char, Pinyin, Trans)</label>
+            <label style="margin-top:0; color:var(--accent)">✨ Smart Paste</label>
             <textarea id="auto-input" rows="4" placeholder="Paste all 3 lines here..." oninput="handleAutoPaste()"></textarea>
         </div>
         
-        <label>Chinese Characters</label>
+        <label>Characters</label>
         <input type="text" id="in-target" placeholder="Characters | here">
-        
         <label>Pinyin</label>
         <input type="text" id="in-pinyin" placeholder="Pinyin | here">
-
         <label>Translation</label>
         <input type="text" id="in-trans" placeholder="English | here">
         
         <button class="btn" onclick="start()">Start Practice</button>
     </div>
 
-    <div id="practice" class="trainer hidden" onclick="reveal()">
+    <div id="practice" class="trainer hidden" onmousedown="handleInteraction(event)" ontouchstart="handleInteraction(event)">
         <div id="display-pinyin" class="row-pinyin"></div>
         <div id="display-target" class="row-target"></div>
         <div id="display-trans" class="row-trans"></div>
-        <div style="margin-top:40px; font-size:0.8rem; color:var(--muted);">Tap to reveal</div>
+        <div style="margin-top:40px; font-size:0.8rem; color:var(--muted); user-select: none;">Tap to reveal | Long-press word to copy</div>
     </div>
 
     <div id="controls" class="nav-btns hidden">
@@ -64,6 +74,7 @@
 
     <script>
         let currentStep = 0; let totalSteps = 0;
+        let lastTouchTime = 0;
 
         function handleAutoPaste() {
             const lines = document.getElementById('auto-input').value.split('\n').filter(l => l.trim() !== '');
@@ -99,13 +110,27 @@
                 if (trC.length > 1) {
                     const sTR = document.createElement('span'); sTR.className = 'chunk unrevealed'; sTR.id = `tr-${i}`; sTR.innerText = trC[i] || ''; trD.appendChild(sTR);
                 } else if (i === 0) {
-                    trD.innerText = trRaw; // Show whole translation if not chunked
+                    trD.innerText = trRaw;
                 }
             });
 
             document.getElementById('setup').classList.add('hidden');
             document.getElementById('practice').classList.remove('hidden');
             document.getElementById('controls').classList.remove('hidden');
+        }
+
+        // Logic to prevent reveal during text selection
+        function handleInteraction(e) {
+            const selection = window.getSelection().toString();
+            // If the user is selecting text, don't reveal a new chunk
+            if (selection.length > 0) return;
+
+            // Simple debounce for mobile touch vs mouse click
+            const now = Date.now();
+            if (now - lastTouchTime < 300) return;
+            lastTouchTime = now;
+
+            reveal();
         }
 
         function reveal() {

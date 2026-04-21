@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chunk Trainer</title>
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --surface: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --chunk-hidden: #d1d5db;
+        }
+
+        [data-theme="dark"] {
+            --bg: #111827;
+            --surface: #1f2937;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border: #374151;
+            --accent: #60a5fa;
+            --accent-hover: #3b82f6;
+            --chunk-hidden: #4b5563;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
+        body {
+            background-color: var(--bg); color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 10;
+        }
+
+        .header-title { font-size: 1.25rem; font-weight: 600; }
+        
+        button {
+            background: none; border: none; color: var(--text-main);
+            font-size: 1rem; cursor: pointer; padding: 8px 12px;
+            border-radius: 8px; transition: 0.2s;
+        }
+        
+        button:active { transform: scale(0.95); }
+        .btn-primary { background: var(--accent); color: white; font-weight: 500; }
+        .btn-icon { font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; }
+        
+        main { padding: 20px; max-width: 600px; margin: 0 auto; }
+
+        /* Views */
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Deck List & Editor */
+        .card {
+            background: var(--surface); padding: 16px; border-radius: 12px;
+            border: 1px solid var(--border); margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: pointer;
+        }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-size: 0.875rem; color: var(--text-muted); }
+        input, textarea {
+            width: 100%; padding: 12px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--bg);
+            color: var(--text-main); font-size: 1rem; outline: none;
+        }
+        input:focus, textarea:focus { border-color: var(--accent); }
+
+        /* Trainer UI */
+        .trainer-container {
+            display: flex; flex-direction: column; height: calc(100vh - 180px);
+            justify-content: center; align-items: center; text-align: center;
+        }
+        
+        .sentence-area { width: 100%; cursor: pointer; padding: 40px 20px; border-radius: 16px; user-select: none; }
+        
+        .row-pinyin { font-size: 1rem; color: var(--text-muted); margin-bottom: 8px; min-height: 24px; }
+        .row-target { font-size: 2rem; font-weight: 600; margin-bottom: 24px; min-height: 48px; line-height: 1.4; }
+        .row-translation { font-size: 1.25rem; color: var(--text-muted); min-height: 30px; }
+
+        .chunk {
+            display: inline-block; margin: 0 4px; border-bottom: 3px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        
+        .chunk.hidden {
+            color: transparent; border-bottom-color: var(--chunk-hidden);
+            pointer-events: none;
+        }
+
+        .controls {
+            display: flex; justify-content: center; gap: 16px; margin-top: auto;
+            padding: 20px 0; border-top: 1px solid var(--border);
+        }
+        
+        .control-btn {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 50%; width: 56px; height: 56px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .control-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Help text */
+        .help-text { font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button id="btn-back" class="btn-icon" style="visibility: hidden;">◀</button>
+        <div class="header-title" id="header-title">Decks</div>
+        <button id="btn-theme" class="btn-icon">🌓</button>
+    </header>
+
+    <main>
+        <div id="view-decks" class="view active">
+            <div id="deck-list"></div>
+            <button class="btn-primary" style="width:100%; padding:14px; margin-top:16px; border-radius:12px;" onclick="createNewDeck()">+ Create New Deck</button>
+        </div>
+
+        <div id="view-deck-editor" class="view">
+            <button class="btn-primary" style="width:100%; padding:14px; margin-bottom:24px; border-radius:12px;" onclick="startTraining()">▶ Start Training</button>
+            <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--text-muted);">Sentences</h3>
+            <div id="sentence-list"></div>
+            
+            <div style="background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid var(--border); margin-top: 20px;">
+                <h4 style="margin-bottom: 12px;">Add New Sentence</h4>
+                <div class="form-group">
+                    <label>Target Language (Use | to chunk)</label>
+                    <input type="text" id="input-target" placeholder="我 | 想 | 喝 | 咖啡">
+                </div>
+                <div class="form-group">
+                    <label>Pinyin/Reading (Use | to chunk)</label>
+                    <input type="text" id="input-pinyin" placeholder="Wǒ | xiǎng | hē | kāfēi">
+                </div>
+                <div class="form-group">
+                    <label>Translation (Use | to chunk)</label>
+                    <input type="text" id="input-trans" placeholder="I | want to | drink | coffee">
+                </div>
+                <button class="btn-primary" style="width:100%; padding:12px; border-radius:8px;" onclick="addSentence()">Add Sentence</button>
+            </div>
+        </div>
+
+        <div id="view-trainer" class="view">
+            <div class="trainer-container">
+                <div class="sentence-area" onclick="handleTap()">
+                    <div id="render-pinyin" class="row-pinyin"></div>
+                    <div id="render-target" class="row-target"></div>
+                    <div id="render-trans" class="row-translation"></div>
+                </div>
+                <div class="help-text">Tap anywhere on the text to reveal the next chunk</div>
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn" id="btn-prev" onclick="prevSentence()">⏮</button>
+                <button class="control-btn" id="btn-reverse" onclick="toggleReverse()" title="Reverse Mode">🔄</button>
+                <button class="control-btn" id="btn-autoplay" onclick="toggleAutoplay()" title="Autoplay">▶️</button>
+                <button class="control-btn" id="btn-next" onclick="nextSentence()">⏭</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- State Management ---
+        let decks = JSON.parse(localStorage.getItem('chunk_decks')) || [
+            {
+                id: 1, name: "Starter Chinese",
+                sentences: [
+                    { target: "我 | 想 | 喝 | 咖啡", pinyin: "Wǒ | xiǎng | hē | kāfēi", trans: "I | want to | drink | coffee" },
+                    { target: "你 | 喜欢 | 什么 | 颜色？", pinyin: "Nǐ | xǐhuan | shénme | yánsè?", trans: "You | like | what | color?" }
+                ]
+            }
+        ];
+        
+        let currentDeckId = null;
+        let currentSentenceIdx = 0;
+        let currentStep = 0;
+        let totalSteps = 0;
+        let isReverse = false;
+        let isAutoplay = false;
+        let autoplayInterval = null;
+
+        // --- Theme Management ---
+        const themeBtn = document.getElementById('btn-theme');
+        let isDark = localStorage.getItem('chunk_theme') === 'dark';
+        if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
+        
+        themeBtn.onclick = () => {
+            isDark = !isDark;
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            localStorage.setItem('chunk_theme', isDark ? 'dark' : 'light');
+        };
+
+        function saveData() { localStorage.setItem('chunk_decks', JSON.stringify(decks)); }
+
+        // --- Navigation ---
+        function showView(viewId, title, showBack) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            document.getElementById('header-title').innerText = title;
+            document.getElementById('btn-back').style.visibility = showBack ? 'visible' : 'hidden';
+            
+            // Cleanup autoplay if leaving trainer
+            if (viewId !== 'view-trainer' && isAutoplay) toggleAutoplay();
+        }
+
+        document.getElementById('btn-back').onclick = () => {
+            if (document.getElementById('view-trainer').classList.contains('active')) {
+                showView('view-deck-editor', decks.find(d => d.id === currentDeckId).name, true);
+            } else {
+                showView('view-decks', 'Decks', false);
+                renderDecks();
+            }
+        };
+
+        // --- Deck List Logic ---
+        function renderDecks() {
+            const container = document.getElementById('deck-list');
+            container.innerHTML = '';
+            decks.forEach(deck => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `<div><strong>${deck.name}</strong><br><small style="color:var(--text-muted)">${deck.sentences.length} sentences</small></div><span>➔</span>`;
+                div.onclick = () => openDeck(deck.id);
+                container.appendChild(div);
+            });
+        }
+
+        function createNewDeck() {
+            const name = prompt("Enter deck name:");
+            if (name) {
+                const newDeck = { id: Date.now(), name, sentences: [] };
+                decks.push(newDeck);
+                saveData();
+                renderDecks();
+            }
+        }
+
+        // --- Deck Editor Logic ---
+        function openDeck(id) {
+            currentDeckId = id;
+            const deck = decks.find(d => d.id === id);
+            showView('view-deck-editor', deck.name, true);
+            renderSentences();
+        }
+
+        function renderSentences() {
+            const deck = decks.find(d => d.id === currentDeckId);
+            const container = document.getElementById('sentence-list');
+            container.innerHTML = '';
+            deck.sentences.forEach((s, idx) => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.style.flexDirection = 'column'; div.style.alignItems = 'flex-start'; div.style.gap = '4px';
+                div.innerHTML = `
+                    <div style="font-weight:600">${s.target.replace(/\|/g, '')}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted)">${s.trans.replace(/\|/g, '')}</div>
+                    <button style="position:absolute; right:16px; color:red; font-size:1.2rem; margin-top:4px;" onclick="deleteSentence(${idx}, event)">×</button>
+                `;
+                div.style.position = 'relative';
+                container.appendChild(div);
+            });
+        }
+
+        function addSentence() {
+            const target = document.getElementById('input-target').value;
+            const pinyin = document.getElementById('input-pinyin').value;
+            const trans = document.getElementById('input-trans').value;
+            
+            if (!target) return alert("Target language is required!");
+            
+            const deck = decks.find(d => d.id === currentDeckId);
+            deck.sentences.push({ target, pinyin, trans });
+            saveData();
+            
+            document.getElementById('input-target').value = '';
+            document.getElementById('input-pinyin').value = '';
+            document.getElementById('input-trans').value = '';
+            renderSentences();
+        }
+
+        function deleteSentence(idx, e) {
+            e.stopPropagation();
+            if(confirm("Delete this sentence?")) {
+                const deck = decks.find(d => d.id === currentDeckId);
+                deck.sentences.splice(idx, 1);
+                saveData();
+                renderSentences();
+            }
+        }
+
+        // --- Trainer Logic ---
+        function startTraining() {
+            const deck = decks.find(d => d.id === currentDeckId);
+            if (deck.sentences.length === 0) return alert("Add some sentences first!");
+            currentSentenceIdx = 0;
+            currentStep = 0;
+            showView('view-trainer', 'Trainer', true);
+            renderTrainer();
+        }
+
+        function renderTrainer() {
+            const deck = decks.find(d => d.id === currentDeckId);
+            const sentence = deck.sentences[currentSentenceIdx];
+            
+            const targetChunks = sentence.target.split('|').map(s => s.trim());
+            const pinyinChunks = sentence.pinyin ? sentence.pinyin.split('|').map(s => s.trim()) : [];
+            const transChunks = sentence.trans ? sentence.trans.split('|').map(s => s.trim()) : [];
+            
+            // Determine max steps based on the chunked target
+            totalSteps = targetChunks.length;
+
+            const tCont = document.getElementById('render-target');
+            const pCont = document.getElementById('render-pinyin');
+            const trCont = document.getElementById('render-trans');
+            
+            tCont.innerHTML = ''; pCont.innerHTML = ''; trCont.innerHTML = '';
+
+            for (let i = 0; i < totalSteps; i++) {
+                // Determine visibility based on step and reverse mode
+                // Normal: Target/Pinyin hide, Trans shows. Reverse: Trans hides, Target/Pinyin show.
+                let isRevealedPrimary = i < currentStep;
+                let isRevealedSecondary = isReverse ? i < currentStep : true;
+                if(isReverse) isRevealedPrimary = true;
+
+                // Render Pinyin
+                if (pinyinChunks[i]) {
+                    const p = document.createElement('span');
+                    p.className = `chunk ${isRevealedPrimary ? '' : 'hidden'}`;
+                    p.innerText = pinyinChunks[i];
+                    pCont.appendChild(p);
+                }
+
+                // Render Target
+                const t = document.createElement('span');
+                t.className = `chunk ${isRevealedPrimary ? '' : 'hidden'}`;
+                t.innerText = targetChunks[i] || ' ';
+                tCont.appendChild(t);
+
+                // Render Trans
+                if (transChunks[i] || transChunks.length === 1) {
+                    const tr = document.createElement('span');
+                    tr.className = `chunk ${!isReverse ? '' : (i < currentStep ? '' : 'hidden')}`;
+                    // If translation isn't chunked properly, just show whole thing on first chunk loop
+                    tr.innerText = transChunks[i] || (i===0 ? transChunks[0] : ''); 
+                    trCont.appendChild(tr);
+                }
+            }
+        }
+
+        function handleTap() {
+            if (currentStep < totalSteps) {
+                currentStep++;
+            } else {
+                currentStep = 0; // Reset sentence
+            }
+            renderTrainer();
+        }
+
+        function nextSentence() {
+            const deck = decks.find(d => d.id === currentDeckId);
+            currentSentenceIdx = (currentSentenceIdx + 1) % deck.sentences.length;
+            currentStep = 0;
+            renderTrainer();
+        }
+
+        function prevSentence() {
+            const deck = decks.find(d => d.id === currentDeckId);
+            currentSentenceIdx = (currentSentenceIdx - 1 + deck.sentences.length) % deck.sentences.length;
+            currentStep = 0;
+            renderTrainer();
+        }
+
+        function toggleReverse() {
+            isReverse = !isReverse;
+            document.getElementById('btn-reverse').classList.toggle('active', isReverse);
+            currentStep = 0;
+            renderTrainer();
+        }
+
+        function toggleAutoplay() {
+            isAutoplay = !isAutoplay;
+            const btn = document.getElementById('btn-autoplay');
+            
+            if (isAutoplay) {
+                btn.classList.add('active');
+                btn.innerText = '⏸️';
+                autoplayInterval = setInterval(() => {
+                    handleTap();
+                    // Auto advance to next sentence if fully revealed
+                    if (currentStep === 0) nextSentence();
+                }, 1500);
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = '▶️';
+                clearInterval(autoplayInterval);
+            }
+        }
+
+        // Init
+        renderDecks();
+    
+    </script>
+</body>
+</html>

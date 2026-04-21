@@ -7,51 +7,23 @@
     <style>
         :root { --bg: #f9fafb; --surface: #ffffff; --text: #111827; --muted: #6b7280; --accent: #3b82f6; --border: #e5e7eb; }
         [data-theme="dark"] { --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8; --border: #334155; }
-        
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, system-ui, sans-serif; }
         body { background: var(--bg); color: var(--text); transition: 0.3s; min-height: 100vh; overflow: hidden; }
-        
         .setup-area { max-width: 500px; margin: 0 auto; padding: 20px; overflow-y: auto; height: 100vh; }
         .hidden { display: none !important; }
         label { display: block; margin-top: 12px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.95rem; }
         .auto-box { border: 2px dashed var(--accent); padding: 15px; border-radius: 12px; background: rgba(59, 130, 246, 0.05); }
         .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold; font-size: 1.1rem; margin-top: 15px; }
-        
-        /* The Trainer Layout */
-        .trainer { 
-            position: fixed; top: 0; left: 0; right: 0; bottom: 100px; /* Leaves room for buttons */
-            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
-            padding: 20px; z-index: 1;
-        }
-        
-        .row-pinyin, .row-target, .row-trans { 
-            display: flex; flex-wrap: wrap; justify-content: center; align-items: center; width: 100%;
-        }
-
+        .trainer { position: fixed; top: 0; left: 0; right: 0; bottom: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; z-index: 1; }
+        .row-pinyin, .row-target, .row-trans { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; width: 100%; }
         .row-pinyin { font-size: 1.1rem; color: var(--muted); margin-bottom: 10px; min-height: 1.5em; pointer-events: none; }
         .row-target { font-size: 2.4rem; font-weight: bold; margin-bottom: 20px; line-height: 1.2; }
         .row-trans { font-size: 1.2rem; color: var(--muted); font-style: italic; pointer-events: none; }
-        
         .chunk { display: inline-flex; margin: 4px; padding-bottom: 2px; border-bottom: 2px solid transparent; }
-        
-        /* The Secret Sauce: Individual word selection */
         .row-target .chunk { user-select: text !important; -webkit-user-select: text !important; }
-
-        .chunk.unrevealed { 
-            color: transparent !important; 
-            border-bottom-color: var(--border);
-            user-select: none !important;
-            -webkit-user-select: none !important;
-            pointer-events: none !important;
-        }
-
-        /* Fixed Bottom Controls */
-        .bottom-bar { 
-            position: fixed; bottom: 0; left: 0; right: 0; height: 100px; 
-            background: var(--bg); border-top: 1px solid var(--border);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
-        }
+        .chunk.unrevealed { color: transparent !important; border-bottom-color: var(--border); user-select: none !important; -webkit-user-select: none !important; pointer-events: none !important; }
+        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 100px; background: var(--bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
         .nav-btns { display: flex; gap: 40px; margin-top: 5px; }
         .circle-btn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.2rem; color: var(--text); display: flex; align-items: center; justify-content: center; }
         .tap-hint { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; font-weight: bold; }
@@ -89,8 +61,10 @@
     </div>
 
     <script>
-        let currentStep = 0; let totalSteps = 0;
-        let pressTimer; let isLongPress = false;
+        let currentStep = 0; 
+        let totalSteps = 0;
+        let pressTimer; 
+        let isLongPress = false;
 
         function handleAutoPaste() {
             const lines = document.getElementById('auto-input').value.split('\n').filter(l => l.trim() !== '');
@@ -113,7 +87,9 @@
             const tC = tRaw.split(/[|｜]/).map(s => s.trim());
             const pC = pRaw.split(/[|｜]/).map(s => s.trim());
             const trC = trRaw.split(/[|｜]/).map(s => s.trim());
+            
             totalSteps = tC.length;
+            currentStep = 0; // Force reset to zero
 
             const tD = document.getElementById('display-target');
             const pD = document.getElementById('display-pinyin');
@@ -122,10 +98,14 @@
 
             tC.forEach((text, i) => {
                 const sT = document.createElement('span'); sT.className = 'chunk unrevealed'; sT.id = `t-${i}`; sT.innerText = text; tD.appendChild(sT);
+                
                 const sP = document.createElement('span'); sP.className = 'chunk unrevealed'; sP.id = `p-${i}`; sP.innerText = pC[i] || ''; pD.appendChild(sP);
+                
                 if (trC.length > 1) {
                     const sTR = document.createElement('span'); sTR.className = 'chunk unrevealed'; sTR.id = `tr-${i}`; sTR.innerText = trC[i] || ''; trD.appendChild(sTR);
-                } else if (i === 0) { trD.innerText = trRaw; }
+                } else if (i === 0) { 
+                    trD.innerText = trRaw; // Show fixed translation if no pipes used
+                }
             });
 
             document.getElementById('setup').classList.add('hidden');
@@ -134,18 +114,26 @@
         }
 
         function pStart(e) { isLongPress = false; pressTimer = setTimeout(() => { isLongPress = true; }, 300); }
+        
         function pEnd(e) {
             clearTimeout(pressTimer);
-            if (!isLongPress && window.getSelection().toString().length === 0) reveal();
+            if (!isLongPress && window.getSelection().toString().length === 0) {
+                reveal();
+            }
         }
 
         function reveal() {
             if (currentStep < totalSteps) {
+                // Reveal the CURRENT step
                 document.getElementById(`t-${currentStep}`).classList.remove('unrevealed');
-                if(document.getElementById(`p-${currentStep}`)) document.getElementById(`p-${currentStep}`).classList.remove('unrevealed');
-                if(document.getElementById(`tr-${currentStep}`)) document.getElementById(`tr-${currentStep}`).classList.remove('unrevealed');
+                const p = document.getElementById(`p-${currentStep}`);
+                if(p) p.classList.remove('unrevealed');
+                const tr = document.getElementById(`tr-${currentStep}`);
+                if(tr) tr.classList.remove('unrevealed');
+                
                 currentStep++;
             } else {
+                // We reached the end. Reset everything.
                 currentStep = 0;
                 document.querySelectorAll('.chunk').forEach(c => c.classList.add('unrevealed'));
             }

@@ -9,32 +9,34 @@
         [data-theme="dark"] { --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8; --border: #334155; }
         
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, system-ui, sans-serif; }
-        body { background: var(--bg); color: var(--text); transition: 0.3s; min-height: 100vh; overflow: hidden; touch-action: manipulation; }
+        body { background: var(--bg); color: var(--text); transition: 0.3s; min-height: 100vh; overflow: hidden; }
         
-        .setup-area { max-width: 500px; margin: 0 auto; padding: 20px; }
+        .setup-area { max-width: 500px; margin: 0 auto; padding: 20px; overflow-y: auto; height: 100vh; }
         .hidden { display: none !important; }
         label { display: block; margin-top: 12px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.95rem; }
-        .auto-box { border: 2px dashed var(--accent); padding: 15px; border-radius: 12px; background: rgba(59, 130, 246, 0.05); margin-bottom: 20px; }
-        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 15px; }
+        .auto-box { border: 2px dashed var(--accent); padding: 15px; border-radius: 12px; background: rgba(59, 130, 246, 0.05); }
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold; font-size: 1.1rem; margin-top: 15px; }
         
-        /* HUGE Tap Area: Now covers almost the whole screen */
+        /* The Trainer Layout */
         .trainer { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 100px; /* Leaves room for buttons */
             display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
             padding: 20px; z-index: 1;
         }
         
-        .row-pinyin, .row-trans { user-select: none; -webkit-user-select: none; pointer-events: none; }
-        .row-pinyin { font-size: 1.1rem; color: var(--muted); margin-bottom: 8px; min-height: 1.5em; }
-        .row-target { font-size: 2.5rem; font-weight: bold; margin-bottom: 15px; line-height: 1.4; z-index: 10; }
-        .row-trans { font-size: 1.2rem; color: var(--muted); min-height: 1.5em; line-height: 1.4; padding: 0 15px; }
+        .row-pinyin, .row-target, .row-trans { 
+            display: flex; flex-wrap: wrap; justify-content: center; align-items: center; width: 100%;
+        }
+
+        .row-pinyin { font-size: 1.1rem; color: var(--muted); margin-bottom: 10px; min-height: 1.5em; pointer-events: none; }
+        .row-target { font-size: 2.4rem; font-weight: bold; margin-bottom: 20px; line-height: 1.2; }
+        .row-trans { font-size: 1.2rem; color: var(--muted); font-style: italic; pointer-events: none; }
         
-        /* Chunks are containers, but text inside is granular */
-        .chunk { display: inline-block; margin: 0 4px; transition: color 0.2s; border-bottom: 2px solid transparent; }
+        .chunk { display: inline-flex; margin: 4px; padding-bottom: 2px; border-bottom: 2px solid transparent; }
         
-        /* This allows you to highlight individual words within the chunk */
-        .row-target .chunk { user-select: text !important; -webkit-user-select: text !important; pointer-events: auto; }
+        /* The Secret Sauce: Individual word selection */
+        .row-target .chunk { user-select: text !important; -webkit-user-select: text !important; }
 
         .chunk.unrevealed { 
             color: transparent !important; 
@@ -44,48 +46,51 @@
             pointer-events: none !important;
         }
 
-        .nav-btns { position: fixed; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 30px; z-index: 100; }
-        .circle-btn { width: 54px; height: 54px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.3rem; color: var(--text); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        /* Fixed Bottom Controls */
+        .bottom-bar { 
+            position: fixed; bottom: 0; left: 0; right: 0; height: 100px; 
+            background: var(--bg); border-top: 1px solid var(--border);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+        }
+        .nav-btns { display: flex; gap: 40px; margin-top: 5px; }
+        .circle-btn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.2rem; color: var(--text); display: flex; align-items: center; justify-content: center; }
+        .tap-hint { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; font-weight: bold; }
     </style>
 </head>
 <body data-theme="light">
 
     <div id="setup" class="setup-area">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h2 style="font-size: 1.4rem;">Sentence Trainer</h2>
-            <button onclick="toggleTheme()" class="circle-btn" style="width:38px; height:38px; font-size:0.9rem;">🌓</button>
+            <h2>Sentence Trainer</h2>
+            <button onclick="toggleTheme()" class="circle-btn" style="width:35px; height:35px; font-size:0.9rem;">🌓</button>
         </div>
         <div class="auto-box">
-            <label style="margin-top:0; color:var(--accent)">✨ Smart Paste (3 lines)</label>
-            <textarea id="auto-input" rows="4" placeholder="Paste Char, Pinyin, and Trans here..." oninput="handleAutoPaste()"></textarea>
+            <label style="margin-top:0; color:var(--accent)">✨ Smart Paste</label>
+            <textarea id="auto-input" rows="4" placeholder="Paste all 3 lines here..." oninput="handleAutoPaste()"></textarea>
         </div>
-        <label>Characters</label>
-        <input type="text" id="in-target" placeholder="Characters | split | mode">
-        <label>Pinyin</label>
-        <input type="text" id="in-pinyin" placeholder="Pinyin | split | mode">
-        <label>Translation</label>
-        <input type="text" id="in-trans" placeholder="Translation | split | mode">
+        <label>Characters</label><input type="text" id="in-target">
+        <label>Pinyin</label><input type="text" id="in-pinyin">
+        <label>Translation</label><input type="text" id="in-trans">
         <button class="btn" onclick="start()">Start Practice</button>
     </div>
 
-    <div id="practice" class="trainer hidden" 
-         onmousedown="pressStart(event)" onmouseup="pressEnd(event)"
-         ontouchstart="pressStart(event)" ontouchend="pressEnd(event)">
+    <div id="practice" class="trainer hidden" onmousedown="pStart(event)" onmouseup="pEnd(event)" ontouchstart="pStart(event)" ontouchend="pEnd(event)">
         <div id="display-pinyin" class="row-pinyin"></div>
         <div id="display-target" class="row-target"></div>
         <div id="display-trans" class="row-trans"></div>
-        <div style="position: absolute; bottom: 120px; font-size:0.75rem; color:var(--muted); user-select:none; letter-spacing: 1px;">TAP ANYWHERE TO REVEAL</div>
     </div>
 
-    <div id="controls" class="nav-btns hidden">
-        <button class="circle-btn" onclick="location.reload()">✎</button>
-        <button class="circle-btn" onclick="toggleTheme()">🌓</button>
+    <div id="controls" class="bottom-bar hidden">
+        <div class="tap-hint">TAP SCREEN TO REVEAL</div>
+        <div class="nav-btns">
+            <button class="circle-btn" onclick="location.reload()">✎</button>
+            <button class="circle-btn" onclick="toggleTheme()">🌓</button>
+        </div>
     </div>
 
     <script>
         let currentStep = 0; let totalSteps = 0;
-        let pressTimer;
-        let isLongPress = false;
+        let pressTimer; let isLongPress = false;
 
         function handleAutoPaste() {
             const lines = document.getElementById('auto-input').value.split('\n').filter(l => l.trim() !== '');
@@ -96,12 +101,14 @@
 
         function setTheme(t) { document.body.setAttribute('data-theme', t); localStorage.setItem('chunk-theme', t); }
         function toggleTheme() { setTheme(document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
-        
+        const savedT = localStorage.getItem('chunk-theme');
+        if (savedT) setTheme(savedT); else if (window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme('dark');
+
         function start() {
             const tRaw = document.getElementById('in-target').value;
             const pRaw = document.getElementById('in-pinyin').value;
             const trRaw = document.getElementById('in-trans').value;
-            if (!tRaw) return alert("Please enter a sentence!");
+            if (!tRaw) return alert("Enter a sentence!");
 
             const tC = tRaw.split(/[|｜]/).map(s => s.trim());
             const pC = pRaw.split(/[|｜]/).map(s => s.trim());
@@ -126,18 +133,10 @@
             document.getElementById('controls').classList.remove('hidden');
         }
 
-        function pressStart(e) {
-            isLongPress = false;
-            pressTimer = setTimeout(() => { isLongPress = true; }, 350); 
-        }
-
-        function pressEnd(e) {
+        function pStart(e) { isLongPress = false; pressTimer = setTimeout(() => { isLongPress = true; }, 300); }
+        function pEnd(e) {
             clearTimeout(pressTimer);
-            const selection = window.getSelection().toString();
-            // Don't reveal if user is selecting or if they held down for a long time
-            if (!isLongPress && selection.length === 0) {
-                reveal();
-            }
+            if (!isLongPress && window.getSelection().toString().length === 0) reveal();
         }
 
         function reveal() {
@@ -148,8 +147,7 @@
                 currentStep++;
             } else {
                 currentStep = 0;
-                const chunks = document.querySelectorAll('.chunk');
-                chunks.forEach(c => c.classList.add('unrevealed'));
+                document.querySelectorAll('.chunk').forEach(c => c.classList.add('unrevealed'));
             }
         }
     </script>

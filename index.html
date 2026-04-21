@@ -5,8 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chunk Trainer Pro</title>
     <style>
-        :root { --bg: #f9fafb; --surface: #ffffff; --text: #111827; --muted: #6b7280; --accent: #3b82f6; --border: #e5e7eb; }
-        [data-theme="dark"] { --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8; --border: #334155; }
+        /* Defaulting the variables to Dark Mode values first */
+        :root { 
+            --bg: #0f172a; 
+            --surface: #1e293b; 
+            --text: #f1f5f9; 
+            --muted: #94a3b8; 
+            --accent: #38bdf8; 
+            --border: #334155; 
+        }
+
+        /* Light Mode overrides */
+        [data-theme="light"] { 
+            --bg: #f9fafb; 
+            --surface: #ffffff; 
+            --text: #111827; 
+            --muted: #6b7280; 
+            --accent: #3b82f6; 
+            --border: #e5e7eb; 
+        }
         
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, system-ui, sans-serif; }
         body { background: var(--bg); color: var(--text); transition: 0.3s; min-height: 100vh; overflow: hidden; }
@@ -15,50 +32,29 @@
         .hidden { display: none !important; }
         label { display: block; margin-top: 12px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.95rem; }
-        .auto-box { border: 2px dashed var(--accent); padding: 15px; border-radius: 12px; background: rgba(59, 130, 246, 0.05); }
-        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold; font-size: 1.1rem; margin-top: 15px; cursor: pointer; }
+        .auto-box { border: 2px dashed var(--accent); padding: 15px; border-radius: 12px; background: rgba(56, 189, 248, 0.05); }
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: #000; font-weight: bold; font-size: 1.1rem; margin-top: 15px; cursor: pointer; }
         
-        /* The Trainer Layout */
         .trainer { 
             position: fixed; top: 0; left: 0; right: 0; bottom: 120px;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             padding: 15px; z-index: 1; overflow-y: auto;
         }
         
-        /* The Container for all chunks */
-        #display-wrapper {
-            display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 15px 10px; width: 100%; max-width: 1000px;
-        }
-
-        /* Grouping Pinyin and Character vertically so they NEVER clash */
-        .chunk-group {
-            display: inline-flex; flex-direction: column; align-items: center; min-width: 40px;
-        }
-
+        #display-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 15px 10px; width: 100%; max-width: 1000px; }
+        .chunk-group { display: inline-flex; flex-direction: column; align-items: center; min-width: 40px; }
         .pinyin-box { font-size: 1rem; color: var(--muted); margin-bottom: 4px; pointer-events: none; user-select: none; text-align: center; }
-        .char-box { font-size: 2.2rem; font-weight: bold; line-height: 1; text-align: center; border-bottom: 2px solid transparent; }
-        
-        /* Selection only on revealed characters */
-        .char-box { user-select: text !important; -webkit-user-select: text !important; }
-
+        .char-box { font-size: 2.2rem; font-weight: bold; line-height: 1; text-align: center; border-bottom: 2px solid transparent; user-select: text !important; -webkit-user-select: text !important; }
         .unrevealed { color: transparent !important; border-bottom-color: var(--border); user-select: none !important; pointer-events: none !important; }
+        .row-trans { margin-top: 30px; font-size: 1.1rem; color: var(--muted); font-style: italic; text-align: center; max-width: 90%; pointer-events: none; user-select: none; }
 
-        /* Fixed Translation at the very bottom */
-        .row-trans { 
-            margin-top: 30px; font-size: 1.1rem; color: var(--muted); font-style: italic; 
-            text-align: center; max-width: 90%; pointer-events: none; user-select: none;
-        }
-
-        /* Bottom Bar */
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 110px; background: var(--bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
         .nav-btns { display: flex; gap: 40px; margin-top: 8px; }
-        .circle-btn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.2rem; color: var(--text); display: flex; align-items: center; justify-content: center; }
+        .circle-btn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.2rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .tap-hint { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; font-weight: bold; }
     </style>
 </head>
-<body data-theme="light">
-
-    <div id="setup" class="setup-area">
+<body data-theme="dark"> <div id="setup" class="setup-area">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h2>Sentence Trainer</h2>
             <button onclick="toggleTheme()" class="circle-btn" style="width:35px; height:35px; font-size:0.9rem;">🌓</button>
@@ -91,6 +87,21 @@
         let pressTimer; let isLongPress = false;
         let lastClickTime = 0; let canReveal = false;
 
+        // --- THEME ENGINE ---
+        function setTheme(t) {
+            document.body.setAttribute('data-theme', t);
+            localStorage.setItem('chunk-theme', t);
+        }
+
+        function toggleTheme() {
+            const current = document.body.getAttribute('data-theme');
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        }
+
+        // Initialize Theme on Load
+        const savedTheme = localStorage.getItem('chunk-theme') || 'dark';
+        setTheme(savedTheme);
+
         function handleAutoPaste() {
             const lines = document.getElementById('auto-input').value.split('\n').filter(l => l.trim() !== '');
             if (lines.length >= 1) document.getElementById('in-target').value = lines[0];
@@ -98,9 +109,6 @@
             if (lines.length >= 3) document.getElementById('in-trans').value = lines[2];
         }
 
-        function setTheme(t) { document.body.setAttribute('data-theme', t); localStorage.setItem('chunk-theme', t); }
-        function toggleTheme() { setTheme(document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
-        
         function start() {
             const tRaw = document.getElementById('in-target').value;
             const pRaw = document.getElementById('in-pinyin').value;
@@ -120,33 +128,25 @@
             wrapper.innerHTML = ''; transBox.innerHTML = '';
 
             tC.forEach((text, i) => {
-                // Create Group Container
                 const group = document.createElement('div');
                 group.className = 'chunk-group';
-                
-                // Pinyin
                 const pDiv = document.createElement('div');
                 pDiv.className = 'pinyin-box unrevealed';
                 pDiv.id = `p-${i}`;
                 pDiv.innerText = pC[i] || '';
-                
-                // Character
                 const cDiv = document.createElement('div');
                 cDiv.className = 'char-box unrevealed';
                 cDiv.id = `t-${i}`;
                 cDiv.innerText = text;
-                
                 group.appendChild(pDiv);
                 group.appendChild(cDiv);
                 wrapper.appendChild(group);
 
-                // Handle Translation (if chunked)
                 if (trC.length > 1) {
                     const sTR = document.createElement('span');
                     sTR.className = 'unrevealed';
                     sTR.id = `tr-${i}`;
                     sTR.innerText = trC[i] + ' ';
-                    sTR.style.marginRight = "5px";
                     transBox.appendChild(sTR);
                 } else if (i === 0) {
                     transBox.innerText = trRaw;
@@ -156,7 +156,6 @@
             document.getElementById('setup').classList.add('hidden');
             document.getElementById('practice').classList.remove('hidden');
             document.getElementById('controls').classList.remove('hidden');
-
             setTimeout(() => { canReveal = true; }, 500);
         }
 

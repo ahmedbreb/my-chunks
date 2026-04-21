@@ -5,42 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chunk Trainer</title>
     <style>
-        :root { --bg: #f9fafb; --surface: #ffffff; --text: #111827; --muted: #6b7280; --accent: #3b82f6; }
-        [data-theme="dark"] { --bg: #111827; --surface: #1f2937; --text: #f9fafb; --muted: #9ca3af; --accent: #60a5fa; }
+        :root { 
+            --bg: #f9fafb; --surface: #ffffff; --text: #111827; --muted: #6b7280; --accent: #3b82f6; --border: #e5e7eb;
+        }
+        [data-theme="dark"] { 
+            --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8; --border: #334155;
+        }
         
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background: var(--bg); color: var(--text); padding: 20px; transition: 0.3s; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, system-ui, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 20px; transition: background 0.3s, color 0.3s; min-height: 100vh; }
         
-        .setup-area { max-width: 500px; margin: 0 auto; display: block; }
+        .setup-area { max-width: 500px; margin: 0 auto; }
         .hidden { display: none !important; }
 
+        label { display: block; margin-top: 15px; font-size: 0.9rem; font-weight: 600; color: var(--muted); }
         input, textarea { 
-            width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; 
-            border: 1px solid #ccc; background: var(--surface); color: var(--text); font-size: 1rem;
+            width: 100%; padding: 15px; margin: 8px 0; border-radius: 12px; 
+            border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 1rem;
         }
 
         .btn { 
             width: 100%; padding: 15px; border-radius: 12px; border: none; 
-            background: var(--accent); color: white; font-weight: bold; font-size: 1.1rem; cursor: pointer;
+            background: var(--accent); color: white; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 10px;
         }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 
         /* Trainer UI */
-        .trainer { height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-        .row-pinyin { font-size: 1.2rem; color: var(--muted); margin-bottom: 10px; min-height: 1.5em; }
-        .row-target { font-size: 2.2rem; font-weight: bold; margin-bottom: 20px; line-height: 1.4; }
-        .row-trans { font-size: 1.3rem; color: var(--muted); font-style: italic; }
+        .trainer { height: 75vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .row-pinyin { font-size: 1.2rem; color: var(--muted); margin-bottom: 10px; min-height: 1.5em; letter-spacing: 0.05em; }
+        .row-target { font-size: 2.4rem; font-weight: bold; margin-bottom: 20px; line-height: 1.5; padding: 0 10px; }
+        .row-trans { font-size: 1.3rem; color: var(--muted); font-style: italic; opacity: 0.8; }
 
-        .chunk { display: inline-block; margin: 0 5px; transition: 0.2s; }
-        .chunk.unrevealed { color: transparent; border-bottom: 2px solid #ccc; }
+        .chunk { display: inline-block; margin: 0 4px; transition: 0.2s; border-bottom: 2px solid transparent; }
+        .chunk.unrevealed { color: transparent; border-bottom-color: var(--border); }
         
-        .nav-btns { position: fixed; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; gap: 20px; }
-        .circle-btn { width: 60px; height: 60px; border-radius: 50%; border: 1px solid #ccc; background: var(--surface); font-size: 1.5rem; color: var(--text); }
+        .nav-btns { position: fixed; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 30px; }
+        .circle-btn { 
+            width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--border); 
+            background: var(--surface); font-size: 1.4rem; color: var(--text); 
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
-<body>
+<body data-theme="light">
 
     <div id="setup" class="setup-area">
-        <h2 style="margin-bottom:20px;">Sentence Trainer</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2>Sentence Trainer</h2>
+            <button onclick="toggleTheme()" class="circle-btn" style="width:40px; height:40px; font-size:1rem;">🌓</button>
+        </div>
+        
         <label>Chinese Sentence (Use | to split)</label>
         <textarea id="in-target" rows="3" placeholder="你是你，| 我是我..."></textarea>
         
@@ -51,23 +65,43 @@
         <input type="text" id="in-trans" placeholder="You are you, I am me...">
         
         <button class="btn" onclick="start()">Start Practice</button>
-        <button id="theme-toggle" class="btn" style="background:#6b7280; margin-top:10px;">Toggle Dark Mode</button>
     </div>
 
     <div id="practice" class="trainer hidden" onclick="reveal()">
         <div id="display-pinyin" class="row-pinyin"></div>
         <div id="display-target" class="row-target"></div>
         <div id="display-trans" class="row-trans"></div>
-        <div style="margin-top:40px; font-size:0.8rem; color:var(--muted);">Tap to reveal next chunk</div>
+        <div style="margin-top:40px; font-size:0.85rem; color:var(--muted); font-weight:500;">Tap anywhere to reveal</div>
     </div>
 
     <div id="controls" class="nav-btns hidden">
         <button class="circle-btn" onclick="location.reload()">✎</button>
+        <button class="circle-btn" onclick="toggleTheme()">🌓</button>
     </div>
 
     <script>
         let currentStep = 0;
         let totalSteps = 0;
+
+        // Theme Handling
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('chunk-theme', theme);
+        }
+
+        function toggleTheme() {
+            const current = document.body.getAttribute('data-theme');
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        }
+
+        // Initialize theme on load
+        const savedTheme = localStorage.getItem('chunk-theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (prefersDark) {
+            setTheme('dark');
+        }
 
         function start() {
             const targetRaw = document.getElementById('in-target').value;
@@ -76,7 +110,6 @@
 
             if (!targetRaw) return alert("Please enter a sentence!");
 
-            // Split by either | or ｜
             const targetChunks = targetRaw.split(/[|｜]/).map(s => s.trim());
             const pinyinChunks = pinyinRaw.split(/[|｜]/).map(s => s.trim());
             totalSteps = targetChunks.length;
@@ -95,13 +128,11 @@
                 spanT.innerText = text;
                 tDiv.appendChild(spanT);
 
-                if(pinyinChunks[i]) {
-                    const spanP = document.createElement('span');
-                    spanP.className = 'chunk unrevealed';
-                    spanP.id = `p-${i}`;
-                    spanP.innerText = pinyinChunks[i];
-                    pDiv.appendChild(spanP);
-                }
+                const spanP = document.createElement('span');
+                spanP.className = 'chunk unrevealed';
+                spanP.id = `p-${i}`;
+                spanP.innerText = pinyinChunks[i] || '';
+                pDiv.appendChild(spanP);
             });
 
             document.getElementById('setup').classList.add('hidden');
@@ -116,7 +147,6 @@
                 if(p) p.classList.remove('unrevealed');
                 currentStep++;
             } else {
-                // Reset
                 currentStep = 0;
                 for(let i=0; i<totalSteps; i++) {
                     document.getElementById(`t-${i}`).classList.add('unrevealed');
@@ -125,12 +155,6 @@
                 }
             }
         }
-
-        document.getElementById('theme-toggle').onclick = () => {
-            const body = document.body;
-            const isDark = body.getAttribute('data-theme') === 'dark';
-            body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-        };
     </script>
 </body>
 </html>

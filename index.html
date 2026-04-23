@@ -15,8 +15,12 @@
         .hidden { display: none !important; }
         label { display: block; margin-top: 12px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.95rem; }
+        
         .auto-box { border: 2px dashed var(--accent); padding: 15px; border-radius: 12px; background: rgba(56, 189, 248, 0.05); }
+        
+        /* Buttons */
         .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: #000; font-weight: bold; font-size: 1.1rem; margin-top: 15px; cursor: pointer; }
+        .btn-clear { background: transparent; border: 1px solid var(--muted); color: var(--muted); margin-top: 10px; font-size: 0.9rem; padding: 10px; }
         
         .trainer { 
             position: fixed; top: 0; left: 0; right: 0; bottom: 120px;
@@ -51,7 +55,9 @@
         <label>Characters</label><input type="text" id="in-target">
         <label>Pinyin</label><input type="text" id="in-pinyin">
         <label>Translation</label><input type="text" id="in-trans">
+        
         <button class="btn" onclick="start()">Start Practice</button>
+        <button class="btn btn-clear" onclick="clearAll()">Clear All Fields</button>
     </div>
 
     <div id="practice" class="trainer hidden">
@@ -74,7 +80,10 @@
         let lastClickTime = 0; let canReveal = false;
 
         function setTheme(t) { document.body.setAttribute('data-theme', t); localStorage.setItem('chunk-theme', t); }
-        function toggleTheme() { setTheme(document.body.getAttribute('data-theme') === (document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark') ? 'light' : 'dark'); }
+        function toggleTheme() { 
+            const current = document.body.getAttribute('data-theme');
+            setTheme(current === 'dark' ? 'light' : 'dark'); 
+        }
         const savedTheme = localStorage.getItem('chunk-theme') || 'dark';
         setTheme(savedTheme);
 
@@ -83,6 +92,14 @@
             if (lines.length >= 1) document.getElementById('in-target').value = lines[0];
             if (lines.length >= 2) document.getElementById('in-pinyin').value = lines[1];
             if (lines.length >= 3) document.getElementById('in-trans').value = lines[2];
+        }
+
+        // NEW CLEAR FUNCTION
+        function clearAll() {
+            document.getElementById('auto-input').value = '';
+            document.getElementById('in-target').value = '';
+            document.getElementById('in-pinyin').value = '';
+            document.getElementById('in-trans').value = '';
         }
 
         function start() {
@@ -120,7 +137,6 @@
             setTimeout(() => { canReveal = true; }, 500);
         }
 
-        // NEW FUNCTIONS
         function resetSentence() {
             currentStep = 0;
             document.querySelectorAll('.pinyin-box, .char-box, #display-trans span').forEach(el => el.classList.add('unrevealed'));

@@ -18,7 +18,6 @@
         
         .auto-box { border: 2px dashed var(--accent); padding: 15px; border-radius: 12px; background: rgba(56, 189, 248, 0.05); }
         
-        /* Buttons */
         .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: #000; font-weight: bold; font-size: 1.1rem; margin-top: 15px; cursor: pointer; }
         .btn-clear { background: transparent; border: 1px solid var(--muted); color: var(--muted); margin-top: 10px; font-size: 0.9rem; padding: 10px; }
         
@@ -36,8 +35,9 @@
         .row-trans { margin-top: 30px; font-size: 1.1rem; color: var(--muted); font-style: italic; text-align: center; max-width: 90%; pointer-events: none; user-select: none; }
 
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 110px; background: var(--bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        .nav-btns { display: flex; gap: 25px; margin-top: 8px; }
-        .circle-btn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.2rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        /* Adjusted gap for 4 buttons */
+        .nav-btns { display: flex; gap: 15px; margin-top: 8px; }
+        .circle-btn { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.2rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .tap-hint { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; font-weight: bold; }
     </style>
 </head>
@@ -68,6 +68,7 @@
     <div id="controls" class="bottom-bar hidden">
         <div class="tap-hint">TAP SCREEN TO REVEAL</div>
         <div class="nav-btns">
+            <button class="circle-btn" onclick="rewindOne()" title="Go Back One Chunk">←</button>
             <button class="circle-btn" onclick="resetSentence()" title="Restart Sentence">↺</button>
             <button class="circle-btn" onclick="goBack()" title="Edit Input">✎</button>
             <button class="circle-btn" onclick="toggleTheme()">🌓</button>
@@ -94,7 +95,6 @@
             if (lines.length >= 3) document.getElementById('in-trans').value = lines[2];
         }
 
-        // NEW CLEAR FUNCTION
         function clearAll() {
             document.getElementById('auto-input').value = '';
             document.getElementById('in-target').value = '';
@@ -135,6 +135,19 @@
             document.getElementById('practice').classList.remove('hidden');
             document.getElementById('controls').classList.remove('hidden');
             setTimeout(() => { canReveal = true; }, 500);
+        }
+
+        // --- UPDATED CONTROLS ---
+
+        function rewindOne() {
+            if (currentStep > 0) {
+                currentStep--;
+                // Hide current step again
+                document.getElementById(`t-${currentStep}`).classList.add('unrevealed');
+                document.getElementById(`p-${currentStep}`).classList.add('unrevealed');
+                const tr = document.getElementById(`tr-${currentStep}`);
+                if(tr) tr.classList.add('unrevealed');
+            }
         }
 
         function resetSentence() {

@@ -27,7 +27,7 @@
             padding: 15px; z-index: 1; overflow-y: auto;
         }
         
-        #display-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 15px 10px; width: 100%; max-width: 1000px; }
+        #display-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 15px 10px; width: 100%; max-width: 1000px; transition: visibility 0.2s; }
         .chunk-group { display: inline-flex; flex-direction: column; align-items: center; min-width: 40px; }
         .pinyin-box { font-size: 1rem; color: var(--muted); margin-bottom: 4px; pointer-events: none; user-select: none; text-align: center; }
         .char-box { font-size: 2.2rem; font-weight: bold; line-height: 1; text-align: center; border-bottom: 2px solid transparent; user-select: text !important; -webkit-user-select: text !important; }
@@ -35,10 +35,14 @@
         .row-trans { margin-top: 30px; font-size: 1.1rem; color: var(--muted); font-style: italic; text-align: center; max-width: 90%; pointer-events: none; user-select: none; }
 
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 110px; background: var(--bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        /* Adjusted gap for 4 buttons */
-        .nav-btns { display: flex; gap: 15px; margin-top: 8px; }
-        .circle-btn { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.2rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .nav-btns { display: flex; gap: 12px; margin-top: 8px; }
+        .circle-btn { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1.1rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .tap-hint { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; font-weight: bold; }
+
+        /* INK MODE: Hide everything except the controls */
+        .ink-mode #display-wrapper, 
+        .ink-mode #display-trans, 
+        .ink-mode .tap-hint { visibility: hidden !important; }
     </style>
 </head>
 <body data-theme="dark">
@@ -50,7 +54,7 @@
         </div>
         <div class="auto-box">
             <label style="margin-top:0; color:var(--accent)">✨ Smart Paste</label>
-            <textarea id="auto-input" rows="4" placeholder="Paste all 3 lines here..." oninput="handleAutoPaste()"></textarea>
+            <textarea id="auto-input" rows="4" placeholder="Paste lines here..." oninput="handleAutoPaste()"></textarea>
         </div>
         <label>Characters</label><input type="text" id="in-target">
         <label>Pinyin</label><input type="text" id="in-pinyin">
@@ -68,9 +72,10 @@
     <div id="controls" class="bottom-bar hidden">
         <div class="tap-hint">TAP SCREEN TO REVEAL</div>
         <div class="nav-btns">
-            <button class="circle-btn" onclick="rewindOne()" title="Go Back One Chunk">←</button>
-            <button class="circle-btn" onclick="resetSentence()" title="Restart Sentence">↺</button>
-            <button class="circle-btn" onclick="goBack()" title="Edit Input">✎</button>
+            <button class="circle-btn" onclick="toggleInkMode()" id="ink-btn" title="Toggle Writing Space">👁️</button>
+            <button class="circle-btn" onclick="rewindOne()" title="Back One">←</button>
+            <button class="circle-btn" onclick="resetSentence()" title="Restart">↺</button>
+            <button class="circle-btn" onclick="goBack()" title="Edit">✎</button>
             <button class="circle-btn" onclick="toggleTheme()">🌓</button>
         </div>
     </div>
@@ -87,6 +92,11 @@
         }
         const savedTheme = localStorage.getItem('chunk-theme') || 'dark';
         setTheme(savedTheme);
+
+        function toggleInkMode() {
+            const isInk = document.body.classList.toggle('ink-mode');
+            document.getElementById('ink-btn').innerText = isInk ? '🙈' : '👁️';
+        }
 
         function handleAutoPaste() {
             const lines = document.getElementById('auto-input').value.split('\n').filter(l => l.trim() !== '');
@@ -137,12 +147,9 @@
             setTimeout(() => { canReveal = true; }, 500);
         }
 
-        // --- UPDATED CONTROLS ---
-
         function rewindOne() {
             if (currentStep > 0) {
                 currentStep--;
-                // Hide current step again
                 document.getElementById(`t-${currentStep}`).classList.add('unrevealed');
                 document.getElementById(`p-${currentStep}`).classList.add('unrevealed');
                 const tr = document.getElementById(`tr-${currentStep}`);
@@ -159,13 +166,16 @@
             document.getElementById('setup').classList.remove('hidden');
             document.getElementById('practice').classList.add('hidden');
             document.getElementById('controls').classList.add('hidden');
+            // Ensure Ink Mode is off when going back to edit
+            document.body.classList.remove('ink-mode');
+            document.getElementById('ink-btn').innerText = '👁️';
         }
 
         const trainer = document.getElementById('practice');
         function onInteractionStart() { isLongPress = false; pressTimer = setTimeout(() => { isLongPress = true; }, 350); }
         function onInteractionEnd() {
             clearTimeout(pressTimer);
-            if (!canReveal) return;
+            if (!canReveal || document.body.classList.contains('ink-mode')) return;
             const now = Date.now();
             if (now - lastClickTime < 300) return;
             lastClickTime = now;

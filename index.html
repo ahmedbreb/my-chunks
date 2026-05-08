@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chunk Trainer Pro</title>
     <style>
-        :root { --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8; --border: #334155; }
-        [data-theme="light"] { --bg: #f9fafb; --surface: #ffffff; --text: #111827; --muted: #6b7280; --accent: #3b82f6; --border: #e5e7eb; }
+        :root { --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8; --border: #334155; --hl: rgba(56, 189, 248, 0.15); }
+        [data-theme="light"] { --bg: #f9fafb; --surface: #ffffff; --text: #111827; --muted: #6b7280; --accent: #3b82f6; --border: #e5e7eb; --hl: rgba(59, 130, 246, 0.1); }
         
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, system-ui, sans-serif; }
         body { background: var(--bg); color: var(--text); transition: 0.3s; min-height: 100vh; overflow: hidden; }
@@ -28,20 +28,31 @@
             -webkit-overflow-scrolling: touch;
         }
         
-        #display-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 20px 12px; width: 100%; max-width: 1000px; margin: auto 0; }
-        .chunk-group { display: inline-flex; flex-direction: column; align-items: center; min-width: 45px; }
+        #display-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 24px 14px; width: 100%; max-width: 1000px; margin: auto 0; }
+        
+        /* CHUNK STYLING */
+        .chunk-group { 
+            display: inline-flex; flex-direction: column; align-items: center; 
+            min-width: 45px; padding: 8px 6px; border-radius: 8px; transition: background 0.2s;
+        }
+        
+        /* HIGHLIGHT LOGIC: Only apply color when revealed AND mode is ON */
+        .hl-active .chunk-group:not(.is-hidden-chunk) { background: var(--hl); }
+        .is-hidden-chunk { background: transparent !important; }
+
         .pinyin-box { font-size: 1.1rem; color: var(--muted); margin-bottom: 6px; pointer-events: none; user-select: none; text-align: center; height: 1.2em; }
-        .char-box { font-size: 2.4rem; font-weight: bold; line-height: 1.1; text-align: center; border-bottom: 2px solid transparent; user-select: text !important; -webkit-user-select: text !important; }
+        .char-box { font-size: 2.4rem; font-weight: bold; line-height: 1.1; text-align: center; border-bottom: 2px solid transparent; user-select: text !important; }
         .unrevealed { color: transparent !important; border-bottom-color: var(--border); user-select: none !important; pointer-events: none !important; }
+        
         .row-trans { margin-top: 40px; font-size: 1.2rem; color: var(--muted); font-style: italic; text-align: center; max-width: 90%; pointer-events: none; user-select: none; padding-bottom: 40px; }
 
-        /* Navigation Bar */
+        /* Navigation Bar - Compact for 7 buttons */
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 110px; background: var(--bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        .nav-btns { display: flex; gap: 8px; margin-top: 8px; }
-        .circle-btn { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .tap-hint { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; font-weight: bold; }
+        .nav-btns { display: flex; gap: 6px; margin-top: 8px; }
+        .circle-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 0.95rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .tap-hint { font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; font-weight: bold; }
 
-        /* Logic Styles */
+        /* Global Toggles */
         .pinyin-hidden .pinyin-box { visibility: hidden !important; }
         .ink-mode #display-wrapper, .ink-mode #display-trans, .ink-mode .tap-hint { visibility: hidden !important; }
     </style>
@@ -51,7 +62,7 @@
     <div id="setup" class="setup-area">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h2>Sentence Trainer</h2>
-            <button onclick="toggleTheme()" class="circle-btn" style="width:35px; height:35px; font-size:0.9rem;">🌓</button>
+            <button onclick="toggleTheme()" class="circle-btn" style="width:35px; height:35px;">🌓</button>
         </div>
         <div class="auto-box">
             <label style="margin-top:0; color:var(--accent)">✨ Smart Paste</label>
@@ -73,9 +84,10 @@
     <div id="controls" class="bottom-bar hidden">
         <div class="tap-hint">TAP SCREEN TO REVEAL</div>
         <div class="nav-btns">
+            <button class="circle-btn" onclick="toggleHighlight()" id="hl-btn" title="Highlight Chunks">🖍️</button>
             <button class="circle-btn" onclick="togglePinyin()" id="pinyin-btn" title="Toggle Pinyin">拼</button>
-            <button class="circle-btn" onclick="toggleInkMode()" id="ink-btn" title="Toggle Writing Space">👁️</button>
-            <button class="circle-btn" onclick="rewindOne()" title="Back One">←</button>
+            <button class="circle-btn" onclick="toggleInkMode()" id="ink-btn" title="Toggle Ink">👁️</button>
+            <button class="circle-btn" onclick="rewindOne()" title="Back">←</button>
             <button class="circle-btn" onclick="resetSentence()" title="Restart">↺</button>
             <button class="circle-btn" onclick="goBack()" title="Edit">✎</button>
             <button class="circle-btn" onclick="toggleTheme()">🌓</button>
@@ -92,7 +104,12 @@
         const savedTheme = localStorage.getItem('chunk-theme') || 'dark';
         setTheme(savedTheme);
 
-        // PINYIN TOGGLE LOGIC
+        function toggleHighlight() {
+            const isActive = document.body.classList.toggle('hl-active');
+            document.getElementById('hl-btn').style.borderColor = isActive ? 'var(--accent)' : 'var(--border)';
+            document.getElementById('hl-btn').style.color = isActive ? 'var(--accent)' : 'var(--text)';
+        }
+
         function togglePinyin() {
             const isHidden = document.body.classList.toggle('pinyin-hidden');
             document.getElementById('pinyin-btn').style.color = isHidden ? 'var(--muted)' : 'var(--accent)';
@@ -111,9 +128,7 @@
             if (lines.length >= 3) document.getElementById('in-trans').value = lines[2];
         }
 
-        function clearAll() {
-            ['auto-input', 'in-target', 'in-pinyin', 'in-trans'].forEach(id => document.getElementById(id).value = '');
-        }
+        function clearAll() { ['auto-input', 'in-target', 'in-pinyin', 'in-trans'].forEach(id => document.getElementById(id).value = ''); }
 
         function start() {
             const tRaw = document.getElementById('in-target').value;
@@ -135,9 +150,13 @@
             wrapper.innerHTML = ''; transBox.innerHTML = '';
 
             tC.forEach((text, i) => {
-                const group = document.createElement('div'); group.className = 'chunk-group';
+                const group = document.createElement('div'); 
+                group.className = 'chunk-group is-hidden-chunk'; 
+                group.id = `group-${i}`;
+                
                 const pDiv = document.createElement('div'); pDiv.className = 'pinyin-box unrevealed'; pDiv.id = `p-${i}`; pDiv.innerText = pC[i] || '';
                 const cDiv = document.createElement('div'); cDiv.className = 'char-box unrevealed'; cDiv.id = `t-${i}`; cDiv.innerText = text;
+                
                 group.appendChild(pDiv); group.appendChild(cDiv); wrapper.appendChild(group);
 
                 if (trC.length > 1) {
@@ -155,6 +174,7 @@
         function rewindOne() {
             if (currentStep > 0) {
                 currentStep--;
+                document.getElementById(`group-${currentStep}`).classList.add('is-hidden-chunk');
                 document.getElementById(`t-${currentStep}`).classList.add('unrevealed');
                 document.getElementById(`p-${currentStep}`).classList.add('unrevealed');
                 const tr = document.getElementById(`tr-${currentStep}`);
@@ -164,6 +184,7 @@
 
         function resetSentence() {
             currentStep = 0;
+            document.querySelectorAll('.chunk-group').forEach(el => el.classList.add('is-hidden-chunk'));
             document.querySelectorAll('.pinyin-box, .char-box, #display-trans span').forEach(el => el.classList.add('unrevealed'));
             document.getElementById('practice').scrollTop = 0;
         }
@@ -194,6 +215,7 @@
 
         function reveal() {
             if (currentStep < totalSteps) {
+                document.getElementById(`group-${currentStep}`).classList.remove('is-hidden-chunk');
                 const charEl = document.getElementById(`t-${currentStep}`);
                 charEl.classList.remove('unrevealed');
                 document.getElementById(`p-${currentStep}`).classList.remove('unrevealed');

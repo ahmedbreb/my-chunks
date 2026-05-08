@@ -33,14 +33,12 @@
             -webkit-overflow-scrolling: touch;
         }
         
-        /* The main container now allows wrapping and takes full width */
         #display-wrapper { 
             display: flex; flex-wrap: wrap; justify-content: center; 
             align-items: flex-end; gap: 20px 8px; width: 100%; 
             max-width: 100%; margin: 0 auto; 
         }
         
-        /* Chunk groups can now wrap their internal contents */
         .chunk-group { 
             display: inline-flex; flex-direction: column; align-items: center; 
             max-width: 100%; 
@@ -57,19 +55,23 @@
             display: flex; flex-wrap: wrap; justify-content: center; 
         }
         
-        /* Highlights stay as single blocks but the group flows */
         .hl-unit { 
             display: inline-block; padding: 0 4px; margin: 2px; 
             border-radius: 6px; background: transparent; transition: 0.2s;
-            white-space: nowrap; /* Keeps the specific word together while highlighting */
+            white-space: nowrap; 
         }
         
+        /* THE FIX: Force transparency when unrevealed */
+        .unrevealed, .unrevealed * { color: transparent !important; pointer-events: none; }
+        .unrevealed { border-bottom-color: var(--border) !important; }
+        .unrevealed .hl-unit { background: transparent !important; }
+
+        /* Revealed States */
+        .revealed .pinyin-box { color: var(--muted); }
+        .revealed .char-box { color: var(--text); }
         .hl-active .revealed .hl-unit { 
             background-color: rgba(from var(--hl-col) r g b / var(--hl-op)); 
         }
-
-        .unrevealed { color: transparent !important; border-bottom-color: var(--border); pointer-events: none; }
-        .unrevealed .hl-unit { background: transparent !important; }
 
         .row-trans { margin-top: 40px; font-size: 1.1rem; color: var(--muted); font-style: italic; text-align: center; max-width: 95%; padding-bottom: 60px; }
 
@@ -85,7 +87,6 @@
         .color-presets { display: flex; gap: 10px; margin-top: 5px; }
         .color-dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
 
-        /* Bottom Bar */
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 110px; background: var(--bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
         .nav-btns { display: flex; gap: 5px; margin-top: 8px; }
         .circle-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 0.9rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -146,7 +147,6 @@
     <script>
         let currentStep = 0, totalSteps = 0, canReveal = false;
 
-        // LOAD SAVED SETTINGS
         const savedCol = localStorage.getItem('hl-col') || '#38bdf8';
         const savedOp = localStorage.getItem('hl-op') || '0.2';
         document.documentElement.style.setProperty('--hl-col', savedCol);
@@ -192,7 +192,6 @@
         function clearAll() { ['auto-input','in-target','in-pinyin','in-trans'].forEach(id => document.getElementById(id).value = ''); }
 
         function wrapText(text) {
-            // Split by space and wrap each part in a span. hl-unit ensures individual highlighting.
             return text.split(' ').map(part => part.trim() === '' ? '' : `<span class="hl-unit">${part}</span>`).join(' ');
         }
 
@@ -238,8 +237,9 @@
         function rewindOne() {
             if (currentStep > 0) {
                 currentStep--;
-                document.getElementById(`g-${currentStep}`).classList.add('unrevealed');
-                document.getElementById(`g-${currentStep}`).classList.remove('revealed');
+                const group = document.getElementById(`g-${currentStep}`);
+                group.classList.add('unrevealed');
+                group.classList.remove('revealed');
                 const tr = document.getElementById(`tr-${currentStep}`);
                 if(tr) tr.classList.add('unrevealed');
             }

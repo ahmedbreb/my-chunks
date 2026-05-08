@@ -14,7 +14,7 @@
         }
         
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, system-ui, sans-serif; }
-        body { background: var(--bg); color: var(--text); transition: 0.3s; min-height: 100vh; overflow: hidden; }
+        body { background: var(--bg); color: var(--text); transition: 0.3s; min-height: 100vh; overflow-x: hidden; }
         
         /* Setup Area */
         .setup-area { max-width: 500px; margin: 0 auto; padding: 20px; overflow-y: auto; height: 100vh; }
@@ -29,33 +29,49 @@
         .trainer { 
             position: fixed; top: 0; left: 0; right: 0; bottom: 110px;
             display: flex; flex-direction: column; align-items: center;
-            padding: 40px 15px; z-index: 1; overflow-y: auto;
+            padding: 40px 10px; z-index: 1; overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
         
-        #display-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 24px 14px; width: 100%; max-width: 1000px; margin: auto 0; }
-        
-        /* Chunk & Highlight Logic */
-        .chunk-group { display: inline-flex; flex-direction: column; align-items: center; min-width: 45px; }
-        .pinyin-box { font-size: 1.1rem; color: var(--muted); margin-bottom: 6px; height: 1.2em; text-align: center; }
-        .char-box { font-size: 2.4rem; font-weight: bold; line-height: 1.2; text-align: center; border-bottom: 2px solid transparent; white-space: nowrap; }
-        
-        .hl-unit { 
-            display: inline-block; 
-            padding: 0 4px; 
-            margin: 0 2px; 
-            border-radius: 6px; 
-            background: transparent; 
-            transition: background 0.2s;
+        /* The main container now allows wrapping and takes full width */
+        #display-wrapper { 
+            display: flex; flex-wrap: wrap; justify-content: center; 
+            align-items: flex-end; gap: 20px 8px; width: 100%; 
+            max-width: 100%; margin: 0 auto; 
         }
         
-        /* When Highlight Mode is ON and Chunk is REVEALED */
-        .hl-active .revealed .hl-unit { background: var(--hl-col); opacity: 1; }
-        /* Apply transparency to the background only */
-        .hl-active .revealed .hl-unit { background-color: rgba(from var(--hl-col) r g b / var(--hl-op)); }
+        /* Chunk groups can now wrap their internal contents */
+        .chunk-group { 
+            display: inline-flex; flex-direction: column; align-items: center; 
+            max-width: 100%; 
+        }
+
+        .pinyin-box { 
+            font-size: 1.05rem; color: var(--muted); margin-bottom: 4px; 
+            min-height: 1.2em; text-align: center; display: flex; flex-wrap: wrap; justify-content: center; 
+        }
+
+        .char-box { 
+            font-size: 2.3rem; font-weight: bold; line-height: 1.2; 
+            text-align: center; border-bottom: 2px solid transparent; 
+            display: flex; flex-wrap: wrap; justify-content: center; 
+        }
+        
+        /* Highlights stay as single blocks but the group flows */
+        .hl-unit { 
+            display: inline-block; padding: 0 4px; margin: 2px; 
+            border-radius: 6px; background: transparent; transition: 0.2s;
+            white-space: nowrap; /* Keeps the specific word together while highlighting */
+        }
+        
+        .hl-active .revealed .hl-unit { 
+            background-color: rgba(from var(--hl-col) r g b / var(--hl-op)); 
+        }
 
         .unrevealed { color: transparent !important; border-bottom-color: var(--border); pointer-events: none; }
-        .row-trans { margin-top: 40px; font-size: 1.2rem; color: var(--muted); font-style: italic; text-align: center; max-width: 90%; padding-bottom: 40px; }
+        .unrevealed .hl-unit { background: transparent !important; }
+
+        .row-trans { margin-top: 40px; font-size: 1.1rem; color: var(--muted); font-style: italic; text-align: center; max-width: 95%; padding-bottom: 60px; }
 
         /* Settings Panel */
         #hl-settings {
@@ -67,13 +83,12 @@
         .setting-row { margin-bottom: 12px; }
         .setting-row label { margin-bottom: 5px; display: block; }
         .color-presets { display: flex; gap: 10px; margin-top: 5px; }
-        .color-dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
-        .color-dot.active { border-color: var(--text); }
+        .color-dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
 
         /* Bottom Bar */
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 110px; background: var(--bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        .nav-btns { display: flex; gap: 6px; margin-top: 8px; }
-        .circle-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 0.95rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .nav-btns { display: flex; gap: 5px; margin-top: 8px; }
+        .circle-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 0.9rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
         .pinyin-hidden .pinyin-box { visibility: hidden !important; }
         .ink-mode #display-wrapper, .ink-mode #display-trans { visibility: hidden !important; }
@@ -82,9 +97,9 @@
 <body data-theme="dark">
 
     <div id="setup" class="setup-area">
-        <h2>Sentence Trainer</h2>
+        <h2 style="text-align:center;">Chunk Trainer Pro</h2>
         <div class="auto-box" style="margin-top:15px;">
-            <textarea id="auto-input" rows="4" placeholder="Paste lines here..." oninput="handleAutoPaste()"></textarea>
+            <textarea id="auto-input" rows="4" placeholder="Paste line 1: Chars&#10;Line 2: Pinyin&#10;Line 3: Translation" oninput="handleAutoPaste()"></textarea>
         </div>
         <label>Characters</label><input type="text" id="in-target">
         <label>Pinyin</label><input type="text" id="in-pinyin">
@@ -106,9 +121,9 @@
         </div>
         <div class="setting-row">
             <label>Transparency</label>
-            <input type="range" min="0.05" max="0.6" step="0.05" id="range-op" oninput="updateHL('op', this.value)" style="accent-color: var(--accent);">
+            <input type="range" min="0.05" max="0.6" step="0.05" id="range-op" oninput="updateHL('op', this.value)" style="width:100%; accent-color: var(--accent);">
         </div>
-        <button class="btn" style="padding:8px; font-size:0.9rem; margin:0" onclick="toggleSettings()">Done</button>
+        <button class="btn" style="padding:10px; font-size:0.9rem; margin:0" onclick="toggleSettings()">Save & Close</button>
     </div>
 
     <div id="practice" class="trainer hidden">
@@ -136,6 +151,7 @@
         const savedOp = localStorage.getItem('hl-op') || '0.2';
         document.documentElement.style.setProperty('--hl-col', savedCol);
         document.documentElement.style.setProperty('--hl-op', savedOp);
+        document.getElementById('range-op').value = savedOp;
 
         function updateHL(type, val) {
             if (type === 'col') {
@@ -176,8 +192,8 @@
         function clearAll() { ['auto-input','in-target','in-pinyin','in-trans'].forEach(id => document.getElementById(id).value = ''); }
 
         function wrapText(text) {
-            // Split by space and wrap each part in a span
-            return text.split(' ').map(part => `<span class="hl-unit">${part}</span>`).join(' ');
+            // Split by space and wrap each part in a span. hl-unit ensures individual highlighting.
+            return text.split(' ').map(part => part.trim() === '' ? '' : `<span class="hl-unit">${part}</span>`).join(' ');
         }
 
         function start() {
@@ -252,7 +268,7 @@
                 group.classList.add('revealed');
                 const tr = document.getElementById(`tr-${currentStep}`);
                 if(tr) tr.classList.remove('unrevealed');
-                group.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                group.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 currentStep++;
             } else { resetSentence(); }
         };

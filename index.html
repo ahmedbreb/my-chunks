@@ -5,273 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chunk Trainer Pro</title>
     <style>
-        :root { 
-            --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8; --border: #334155; 
-            --hl-col: #38bdf8; --hl-op: 0.2; 
-        }
-        [data-theme="light"] { 
-            --bg: #f9fafb; --surface: #ffffff; --text: #111827; --muted: #6b7280; --accent: #3b82f6; --border: #e5e7eb; 
-        }
-        
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, system-ui, sans-serif; }
-        body { background: var(--bg); color: var(--text); transition: 0.3s; min-height: 100vh; overflow-x: hidden; }
-        
-        /* Setup Area */
-        .setup-area { max-width: 500px; margin: 0 auto; padding: 20px; overflow-y: auto; height: 100vh; }
+        :root { --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8; --border: #334155; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
         .hidden { display: none !important; }
-        label { display: block; margin-top: 12px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
-        input, textarea { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.95rem; }
-        .auto-box { border: 2px dashed var(--accent); padding: 15px; border-radius: 12px; background: rgba(56, 189, 248, 0.05); }
-        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); color: #000; font-weight: bold; font-size: 1.1rem; margin-top: 15px; cursor: pointer; }
-        .btn-clear { background: transparent; border: 1px solid var(--muted); color: var(--muted); margin-top: 10px; font-size: 0.9rem; padding: 10px; border: none; width: 100%; }
-
-        /* Trainer Area */
-        .trainer { 
-            position: fixed; top: 0; left: 0; right: 0; bottom: 110px;
-            display: flex; flex-direction: column; align-items: center;
-            padding: 40px 10px; z-index: 1; overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
         
-        #display-wrapper { 
-            display: flex; flex-wrap: wrap; justify-content: center; 
-            align-items: flex-end; gap: 20px 8px; width: 100%; 
-            max-width: 100%; margin: 0 auto; 
-        }
+        .setup-area { max-width: 500px; margin: 0 auto; padding: 20px; }
+        input, textarea { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--accent); font-weight: bold; cursor: pointer; margin-top: 10px; }
+
+        .trainer { position: fixed; top: 0; left: 0; right: 0; bottom: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        #word-display { font-size: 3.5rem; font-weight: bold; text-align: center; }
         
-        .chunk-group { 
-            display: inline-flex; flex-direction: column; align-items: center; 
-            max-width: 100%; 
-        }
-
-        .pinyin-box { 
-            font-size: 1.05rem; color: var(--muted); margin-bottom: 4px; 
-            min-height: 1.2em; text-align: center; display: flex; flex-wrap: wrap; justify-content: center; 
-        }
-
-        .char-box { 
-            font-size: 2.3rem; font-weight: bold; line-height: 1.2; 
-            text-align: center; border-bottom: 2px solid transparent; 
-            display: flex; flex-wrap: wrap; justify-content: center; 
-        }
+        /* Reference Panel */
+        #ref-panel { position: fixed; bottom: 110px; left: 10px; right: 10px; background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.9rem; z-index: 10; }
         
-        .hl-unit { 
-            display: inline-block; padding: 0 4px; margin: 2px; 
-            border-radius: 6px; background: transparent; transition: 0.2s;
-            white-space: nowrap; 
-        }
-        
-        /* THE FIX: Force transparency when unrevealed */
-        .unrevealed, .unrevealed * { color: transparent !important; pointer-events: none; }
-        .unrevealed { border-bottom-color: var(--border) !important; }
-        .unrevealed .hl-unit { background: transparent !important; }
-
-        /* Revealed States */
-        .revealed .pinyin-box { color: var(--muted); }
-        .revealed .char-box { color: var(--text); }
-        .hl-active .revealed .hl-unit { 
-            background-color: rgba(from var(--hl-col) r g b / var(--hl-op)); 
-        }
-
-        .row-trans { margin-top: 40px; font-size: 1.1rem; color: var(--muted); font-style: italic; text-align: center; max-width: 95%; padding-bottom: 60px; }
-
-        /* Settings Panel */
-        #hl-settings {
-            position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
-            background: var(--surface); border: 1px solid var(--border); padding: 15px;
-            border-radius: 16px; width: 90%; max-width: 350px; z-index: 1000;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .setting-row { margin-bottom: 12px; }
-        .setting-row label { margin-bottom: 5px; display: block; }
-        .color-presets { display: flex; gap: 10px; margin-top: 5px; }
-        .color-dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
-
-        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 110px; background: var(--bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        .nav-btns { display: flex; gap: 5px; margin-top: 8px; }
-        .circle-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 0.9rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-
-        .pinyin-hidden .pinyin-box { visibility: hidden !important; }
-        .ink-mode #display-wrapper, .ink-mode #display-trans { visibility: hidden !important; }
+        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 110px; background: var(--bg); border-top: 1px solid var(--border); display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .circle-btn { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: 1.2rem; }
     </style>
 </head>
-<body data-theme="dark">
+<body>
 
     <div id="setup" class="setup-area">
-        <h2 style="text-align:center;">Chunk Trainer Pro</h2>
-        <div class="auto-box" style="margin-top:15px;">
-            <textarea id="auto-input" rows="4" placeholder="Paste line 1: Chars&#10;Line 2: Pinyin&#10;Line 3: Translation" oninput="handleAutoPaste()"></textarea>
-        </div>
-        <label>Characters</label><input type="text" id="in-target">
-        <label>Pinyin</label><input type="text" id="in-pinyin">
-        <label>Translation</label><input type="text" id="in-trans">
-        <button class="btn" onclick="start()">Start Practice</button>
-        <button class="btn btn-clear" onclick="clearAll()">Clear Fields</button>
+        <h2>Chunk Trainer</h2>
+        <label>Characters (Use spaces to separate words)</label>
+        <textarea id="in-target" rows="2">我 本来 打算 今天 去洗。</textarea>
+        <label>Full Pinyin</label><input type="text" id="in-pinyin" value="wǒ běnlái dǎsuàn jīntiān qùxǐ.">
+        <label>Full Translation</label><input type="text" id="in-trans" value="I originally planned to go wash today.">
+        <button class="btn" onclick="startWordMode()">Start Word-by-Word</button>
     </div>
 
-    <div id="hl-settings" class="hidden">
-        <div class="setting-row">
-            <label>Highlight Color</label>
-            <div class="color-presets">
-                <div class="color-dot" style="background:#38bdf8" onclick="updateHL('col', '#38bdf8')"></div>
-                <div class="color-dot" style="background:#a855f7" onclick="updateHL('col', '#a855f7')"></div>
-                <div class="color-dot" style="background:#ec4899" onclick="updateHL('col', '#ec4899')"></div>
-                <div class="color-dot" style="background:#22c55e" onclick="updateHL('col', '#22c55e')"></div>
-                <div class="color-dot" style="background:#eab308" onclick="updateHL('col', '#eab308')"></div>
-            </div>
-        </div>
-        <div class="setting-row">
-            <label>Transparency</label>
-            <input type="range" min="0.05" max="0.6" step="0.05" id="range-op" oninput="updateHL('op', this.value)" style="width:100%; accent-color: var(--accent);">
-        </div>
-        <button class="btn" style="padding:10px; font-size:0.9rem; margin:0" onclick="toggleSettings()">Save & Close</button>
+    <div id="practice" class="trainer hidden" onclick="nextWord()">
+        <div id="word-display"></div>
     </div>
 
-    <div id="practice" class="trainer hidden">
-        <div id="display-wrapper"></div>
-        <div id="display-trans" class="row-trans"></div>
+    <div id="ref-panel" class="hidden">
+        <div style="color: var(--accent); font-weight: bold; margin-bottom: 5px;">Reference</div>
+        <div id="ref-pinyin"></div>
+        <div id="ref-trans" style="margin-top: 5px;"></div>
     </div>
 
     <div id="controls" class="bottom-bar hidden">
-        <div class="nav-btns">
-            <button class="circle-btn" onclick="toggleHighlightMode()" id="hl-btn">🖍️</button>
-            <button class="circle-btn" onclick="togglePinyin()" id="pinyin-btn">拼</button>
-            <button class="circle-btn" onclick="toggleInkMode()" id="ink-btn">👁️</button>
-            <button class="circle-btn" onclick="rewindOne()">←</button>
-            <button class="circle-btn" onclick="resetSentence()">↺</button>
-            <button class="circle-btn" onclick="goBack()">✎</button>
-            <button class="circle-btn" onclick="toggleTheme()">🌓</button>
-        </div>
+        <button class="circle-btn" onclick="toggleRef()">?</button>
+        <button class="circle-btn" onclick="goBack()">✎</button>
+        <button class="circle-btn" onclick="reset()">↺</button>
     </div>
 
     <script>
-        let currentStep = 0, totalSteps = 0, canReveal = false;
+        let words = [];
+        let index = 0;
 
-        const savedCol = localStorage.getItem('hl-col') || '#38bdf8';
-        const savedOp = localStorage.getItem('hl-op') || '0.2';
-        document.documentElement.style.setProperty('--hl-col', savedCol);
-        document.documentElement.style.setProperty('--hl-op', savedOp);
-        document.getElementById('range-op').value = savedOp;
-
-        function updateHL(type, val) {
-            if (type === 'col') {
-                document.documentElement.style.setProperty('--hl-col', val);
-                localStorage.setItem('hl-col', val);
-            } else {
-                document.documentElement.style.setProperty('--hl-op', val);
-                localStorage.setItem('hl-op', val);
-            }
-        }
-
-        function setTheme(t) { document.body.setAttribute('data-theme', t); localStorage.setItem('chunk-theme', t); }
-        function toggleTheme() { setTheme(document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
-        setTheme(localStorage.getItem('chunk-theme') || 'dark');
-
-        function toggleHighlightMode() {
-            const isActive = document.body.classList.toggle('hl-active');
-            document.getElementById('hl-btn').style.color = isActive ? 'var(--accent)' : 'var(--text)';
-            document.getElementById('hl-btn').style.borderColor = isActive ? 'var(--accent)' : 'var(--border)';
-            if (isActive) toggleSettings();
-            else document.getElementById('hl-settings').classList.add('hidden');
-        }
-
-        function toggleSettings() { document.getElementById('hl-settings').classList.toggle('hidden'); }
-        function togglePinyin() { document.body.classList.toggle('pinyin-hidden'); }
-        function toggleInkMode() { 
-            const isI = document.body.classList.toggle('ink-mode');
-            document.getElementById('ink-btn').innerText = isI ? '🙈' : '👁️';
-        }
-
-        function handleAutoPaste() {
-            const lines = document.getElementById('auto-input').value.split('\n').filter(l => l.trim() !== '');
-            if (lines.length >= 1) document.getElementById('in-target').value = lines[0];
-            if (lines.length >= 2) document.getElementById('in-pinyin').value = lines[1];
-            if (lines.length >= 3) document.getElementById('in-trans').value = lines[2];
-        }
-
-        function clearAll() { ['auto-input','in-target','in-pinyin','in-trans'].forEach(id => document.getElementById(id).value = ''); }
-
-        function wrapText(text) {
-            return text.split(' ').map(part => part.trim() === '' ? '' : `<span class="hl-unit">${part}</span>`).join(' ');
-        }
-
-        function start() {
-            const tRaw = document.getElementById('in-target').value;
-            const pRaw = document.getElementById('in-pinyin').value;
-            const trRaw = document.getElementById('in-trans').value;
-            if (!tRaw) return;
-
-            const splitRegex = /[|｜]/;
-            const tC = tRaw.split(splitRegex).map(s => s.trim()).filter(s => s.length > 0);
-            const pC = pRaw.split(splitRegex).map(s => s.trim()).filter(s => s.length > 0);
-            const trC = trRaw.split(splitRegex).map(s => s.trim()).filter(s => s.length > 0);
+        function startWordMode() {
+            const raw = document.getElementById('in-target').value;
+            words = raw.split(/\s+/).filter(w => w.length > 0);
+            document.getElementById('ref-pinyin').innerText = document.getElementById('in-pinyin').value;
+            document.getElementById('ref-trans').innerText = document.getElementById('in-trans').value;
             
-            totalSteps = tC.length; currentStep = 0; canReveal = false;
-            const wrapper = document.getElementById('display-wrapper');
-            const transBox = document.getElementById('display-trans');
-            wrapper.innerHTML = ''; transBox.innerHTML = '';
-
-            tC.forEach((text, i) => {
-                const group = document.createElement('div'); 
-                group.className = 'chunk-group unrevealed'; group.id = `g-${i}`;
-                
-                const pBox = document.createElement('div'); pBox.className = 'pinyin-box'; 
-                pBox.innerHTML = wrapText(pC[i] || '');
-
-                const cBox = document.createElement('div'); cBox.className = 'char-box'; 
-                cBox.innerHTML = wrapText(text);
-                
-                group.appendChild(pBox); group.appendChild(cBox); wrapper.appendChild(group);
-
-                if (trC.length > 1) {
-                    const sTR = document.createElement('span'); sTR.className = 'unrevealed'; sTR.id = `tr-${i}`; sTR.innerText = trC[i] + ' '; transBox.appendChild(sTR);
-                } else if (i === 0) { transBox.innerText = trRaw; }
-            });
-
             document.getElementById('setup').classList.add('hidden');
             document.getElementById('practice').classList.remove('hidden');
             document.getElementById('controls').classList.remove('hidden');
-            setTimeout(() => { canReveal = true; }, 500);
+            index = 0;
+            showWord();
         }
 
-        function rewindOne() {
-            if (currentStep > 0) {
-                currentStep--;
-                const group = document.getElementById(`g-${currentStep}`);
-                group.classList.add('unrevealed');
-                group.classList.remove('revealed');
-                const tr = document.getElementById(`tr-${currentStep}`);
-                if(tr) tr.classList.add('unrevealed');
-            }
+        function nextWord() {
+            index = (index + 1) % words.length;
+            showWord();
         }
 
-        function resetSentence() {
-            currentStep = 0;
-            document.querySelectorAll('.chunk-group, #display-trans span').forEach(el => {
-                el.classList.add('unrevealed');
-                el.classList.remove('revealed');
-            });
+        function showWord() {
+            document.getElementById('word-display').innerText = words[index];
         }
+
+        function toggleRef() { document.getElementById('ref-panel').classList.toggle('hidden'); }
+        
+        function reset() { index = 0; showWord(); }
 
         function goBack() {
-            document.getElementById('setup').classList.remove('hidden');
             document.getElementById('practice').classList.add('hidden');
             document.getElementById('controls').classList.add('hidden');
-            document.getElementById('hl-settings').classList.add('hidden');
+            document.getElementById('ref-panel').classList.add('hidden');
+            document.getElementById('setup').classList.remove('hidden');
         }
-
-        document.getElementById('practice').onclick = () => {
-            if (!canReveal || document.body.classList.contains('ink-mode')) return;
-            if (currentStep < totalSteps) {
-                const group = document.getElementById(`g-${currentStep}`);
-                group.classList.remove('unrevealed');
-                group.classList.add('revealed');
-                const tr = document.getElementById(`tr-${currentStep}`);
-                if(tr) tr.classList.remove('unrevealed');
-                group.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                currentStep++;
-            } else { resetSentence(); }
-        };
     </script>
 </body>
 </html>

@@ -59,21 +59,21 @@
         #word-display-container { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; width: 100%; }
         #word-flashcard { font-size: 4rem; font-weight: bold; text-align: center; min-height: 1.5em; display: flex; align-items: center; justify-content: center; user-select: none; }
         
-        /* Persistent Overlay Panel for Tables and Reference Details */
+        /* Reference Panel Details */
         #word-ref-panel { 
             background: var(--surface); border: 1px solid var(--border); padding: 15px; 
             border-radius: 14px; width: 92%; max-width: 600px; margin-top: 20px; 
             font-size: 0.9rem; box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
-            overflow-x: auto; max-height: 250px; overflow-y: auto;
+            overflow-x: auto; max-height: 300px; overflow-y: auto;
         }
 
-        /* Markdown Table Layout Overrides */
+        /* Upgraded Markdown/Plain Table Layout Engine */
         #word-ref-panel table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: left; }
-        #word-ref-panel th, #word-ref-panel td { border: 1px solid var(--border); padding: 8px 12px; font-size: 0.85rem; }
-        #word-ref-panel th { background: rgba(25px, 25px, 25px, 0.2); color: var(--accent); font-weight: bold; }
+        #word-ref-panel th, #word-ref-panel td { border: 1px solid var(--border); padding: 8px 12px; font-size: 0.85rem; vertical-align: top; }
+        #word-ref-panel th { background: rgba(255, 255, 255, 0.05); color: var(--accent); font-weight: bold; white-space: nowrap; }
         #word-ref-panel tr:nth-child(even) { background: rgba(255,255,255,0.02); }
 
-        /* Draggable Large Floating Action Button */
+        /* Floating Action Button */
         #floating-ref-btn {
             position: fixed; top: 100px; right: 20px; width: 60px; height: 60px;
             border-radius: 50%; background: var(--accent); color: #000; font-size: 1.6rem;
@@ -99,7 +99,6 @@
         .nav-btns { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
         .circle-btn { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 1rem; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        /* Global Toggle Modifiers */
         .pinyin-hidden .pinyin-box { visibility: hidden !important; }
         .ink-mode #display-wrapper, .ink-mode #display-trans, .ink-mode #word-flashcard { visibility: hidden !important; }
     </style>
@@ -112,14 +111,14 @@
         <div class="auto-box" style="margin-top:15px;">
             <textarea id="auto-input" rows="4" placeholder="Paste line 1: Chars&#10;Line 2: Pinyin&#10;Line 3: Translation" oninput="handleAutoPaste()"></textarea>
         </div>
-        <label>Characters (Use spaces to divide targets for Word Mode)</label>
-        <input type="text" id="in-target" value="流派 不同 的 三 位 天才 剑士 相遇 ， 潜入 巨大 迷宫 的 冒险 活剧 。">
-        <label>Pinyin</label><input type="text" id="in-pinyin" value="liúpài bùtóng de sān wèi tiāncái jiànshì xiāngyù , qiánrù jùdà mígōng de màoxiǎn huójù .">
-        <label>Translation / Reference Layout (Accepts Markdown Tables)</label>
-        <textarea id="in-trans" rows="8">| Chinese | Pinyin | Translation in the given English sentence | Notes |
-| :--- | :--- | :--- | :--- |
-| 流派 | liúpài | "styles" | Direct match; refers to schools... |
-| 不同 | bùtóng | "different" | Direct match. |</textarea>
+        <label>Characters</label>
+        <input type="text" id="in-target" value="先 不说 下面 两个 战斗 小说 ， 上面 三个 让 我 学到 很多">
+        <label>Pinyin</label><input type="text" id="in-pinyin" value="xiān bùshuō xiàmiàn liǎnggè zhàndòu xiǎoshuō , shàngmiàn sāngè ràng wǒ xuédào hěnduō">
+        <label>Translation / Reference Panel (Accepts tables with or without pipes)</label>
+        <textarea id="in-trans" rows="8">Chinese Pinyin Translation in the given English sentence Notes
+先 xiān "Not" Partial match; combines with 不说 as a fixed chunk "not to mention."
+不说 bù shuō "to mention" Partial match; together with 先 forms "not to mention" (fixed expression).
+下面 xiàmiàn "below" Direct match.</textarea>
         
         <div class="btn-group">
             <button class="btn" onclick="startMode('chunk')">Chunk Mode</button>
@@ -128,7 +127,7 @@
         <button class="btn btn-clear" onclick="clearAll()">Clear Fields</button>
     </div>
 
-    <!-- FLOATING ACTION TOGGLE (WORD MODE ONLY) -->
+    <!-- FLOATING ACTION TOGGLE -->
     <button id="floating-ref-btn" class="hidden">?</button>
 
     <!-- HIGHLIGHT SETTINGS PANEL -->
@@ -152,13 +151,11 @@
 
     <!-- PRACTICE CONTAINER -->
     <div id="practice" class="trainer hidden">
-        <!-- view 1: Original Chunk View -->
         <div id="chunk-view" class="hidden" style="width: 100%;">
             <div id="display-wrapper"></div>
             <div id="display-trans" class="row-trans"></div>
         </div>
         
-        <!-- view 2: Word-by-Word View -->
         <div id="word-view" class="hidden">
             <div id="word-display-container">
                 <div id="word-flashcard"></div>
@@ -187,11 +184,9 @@
     <script>
         let currentMode = 'chunk'; 
         let currentStep = 0, totalSteps = 0, canReveal = false;
-        
         let wordList = [];
         let wordIndex = 0;
 
-        // Load custom styles
         const savedCol = localStorage.getItem('hl-col') || '#38bdf8';
         const savedOp = localStorage.getItem('hl-op') || '0.2';
         document.documentElement.style.setProperty('--hl-col', savedCol);
@@ -199,13 +194,8 @@
         document.getElementById('range-op').value = savedOp;
 
         function updateHL(type, val) {
-            if (type === 'col') {
-                document.documentElement.style.setProperty('--hl-col', val);
-                localStorage.setItem('hl-col', val);
-            } else {
-                document.documentElement.style.setProperty('--hl-op', val);
-                localStorage.setItem('hl-op', val);
-            }
+            if (type === 'col') { document.documentElement.style.setProperty('--hl-col', val); localStorage.setItem('hl-col', val); }
+            else { document.documentElement.style.setProperty('--hl-op', val); localStorage.setItem('hl-op', val); }
         }
 
         function setTheme(t) { document.body.setAttribute('data-theme', t); localStorage.setItem('chunk-theme', t); }
@@ -228,21 +218,50 @@
             document.getElementById('ink-btn').innerText = isI ? '🙈' : '👁️';
         }
 
-        // Custom Light Markdown Table Parser
-        function parseMarkdownTable(text) {
+        // NEW SMART PARSER: Handles regular pipes, tabs, and tabless messy AI rows
+        function smartTableParser(text) {
             const lines = text.trim().split('\n');
-            if (!lines.some(line => line.includes('|'))) return text.replace(/\n/g, '<br>');
+            if (lines.length === 0) return text;
 
             let html = '<table>';
             let hasThead = false;
 
+            // Target column count based on line 1 words
+            const firstLineCells = lines[0].split(/[|\t]/).map(c => c.trim()).filter(c => c.length > 0);
+            
             lines.forEach((line) => {
                 const tr = line.trim();
-                if (!tr.startsWith('|') || tr.replace(/[:\s-|-]/g, '') === '') return; // skip delimiter rows
+                if (tr.replace(/[:\s-|-]/g, '') === '') return; // Skip separator lines
                 
-                const cells = tr.split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1);
+                let cells = [];
                 
+                if (tr.includes('|')) {
+                    // Scenario A: Standard Markdown
+                    cells = tr.split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1);
+                } else if (tr.includes('\t')) {
+                    // Scenario B: Tab separated copy-pastes
+                    cells = tr.split('\t').map(c => c.trim());
+                } else {
+                    // Scenario C: Space-separated text without formatting characters
+                    // Extracts the Chinese element, the pinyin chunk, quotes, and whatever remains as notes.
+                    const regex = /^([^\s\w",.，。]+)\s+([a-záéíóúūǐǒǔàèìòùñ\s:]+)\s+("[^"]+"|-|—)\s+(.+)$/i;
+                    const match = tr.match(regex);
+                    if (match) {
+                        cells = [match[1], match[2], match[3], match[4]];
+                    } else {
+                        // Fallback split logic
+                        cells = tr.split(/\s{2,}/).map(c => c.trim());
+                        if (cells.length < 2) cells = tr.split(' ').map(c => c.trim());
+                    }
+                }
+
+                if (cells.filter(c => c.length > 0).length === 0) return;
+
                 if (!hasThead) {
+                    // If the first row parsing was weird, hardcode safety keys
+                    if(cells.length < 4 && !tr.includes('|')) {
+                        cells = ["Chinese", "Pinyin", "Translation", "Notes"];
+                    }
                     html += '<thead><tr>' + cells.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
                     hasThead = true;
                 } else {
@@ -261,6 +280,7 @@
             if (lines.length >= 3) document.getElementById('in-trans').value = lines.slice(2).join('\n');
         }
 
+        // Keep setup field clear rules safe
         function clearAll() { ['auto-input','in-target','in-pinyin','in-trans'].forEach(id => document.getElementById(id).value = ''); }
 
         function wrapText(text) {
@@ -310,7 +330,7 @@
 
                     if (trC.length > 1) {
                         const sTR = document.createElement('span'); sTR.className = 'unrevealed'; sTR.id = `tr-${i}`; sTR.innerText = trC[i] + ' '; transBox.appendChild(sTR);
-                    } else if (i === 0) { transBox.innerHTML = parseMarkdownTable(trRaw); }
+                    } else if (i === 0) { transBox.innerHTML = smartTableParser(trRaw); }
                 });
                 setTimeout(() => { canReveal = true; }, 500);
 
@@ -324,9 +344,7 @@
                 wordList = cleanChars.split(/\s+/).filter(w => w.trim().length > 0);
                 
                 document.getElementById('word-ref-pinyin').innerText = pRaw.replace(/[|｜]/g, ' ');
-                
-                // Parse and inject markdown tables inside word breakdown reference
-                document.getElementById('word-ref-trans').innerHTML = parseMarkdownTable(trRaw);
+                document.getElementById('word-ref-trans').innerHTML = smartTableParser(trRaw);
                 
                 wordIndex = 0;
                 renderWordFlashcard();
@@ -339,7 +357,6 @@
             }
         }
 
-        // Central Practice Interactor
         document.getElementById('practice').onclick = (e) => {
             if (document.body.classList.contains('ink-mode')) return;
             if (e.target.closest('#word-ref-panel') || e.target.closest('#hl-settings')) return;
@@ -356,7 +373,6 @@
                     currentStep++;
                 } else { handleReset(); }
             } else {
-                // Word Mode advances forward
                 wordIndex = (wordIndex + 1) % wordList.length;
                 renderWordFlashcard();
             }
@@ -373,12 +389,8 @@
                     if(tr) tr.classList.add('unrevealed');
                 }
             } else {
-                // Word Mode structural regression fix
-                if (wordIndex > 0) {
-                    wordIndex--;
-                } else {
-                    wordIndex = wordList.length - 1;
-                }
+                if (wordIndex > 0) { wordIndex--; } 
+                else { wordIndex = wordList.length - 1; }
                 renderWordFlashcard();
             }
         }
@@ -405,17 +417,15 @@
             document.getElementById('setup').classList.remove('hidden');
         }
 
-        // DRAG AND TOUCH RUNTIME FOR FLOATING BUTTON
+        // Pointer-Events Controller for Floating Action Trigger
         const el = document.getElementById('floating-ref-btn');
         let isDragging = false;
         let startX, startY, initialX, initialY;
 
         el.addEventListener('pointerdown', (e) => {
             isDragging = false;
-            startX = e.clientX;
-            startY = e.clientY;
-            initialX = el.offsetLeft;
-            initialY = el.offsetTop;
+            startX = e.clientX; startY = e.clientY;
+            initialX = el.offsetLeft; initialY = el.offsetTop;
             el.setPointerCapture(e.pointerId);
         });
 
@@ -426,14 +436,13 @@
                 isDragging = true;
                 el.style.left = (initialX + dx) + 'px';
                 el.style.top = (initialY + dy) + 'px';
-                el.style.right = 'auto'; // Break binding constraints
+                el.style.right = 'auto'; 
             }
         });
 
         el.addEventListener('pointerup', (e) => {
             el.releasePointerCapture(e.pointerId);
             if (!isDragging) {
-                // Treated as a clean tap if button didn't translate significantly
                 document.getElementById('word-ref-panel').classList.toggle('hidden');
             }
             isDragging = false;
